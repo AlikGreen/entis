@@ -1,9 +1,0 @@
-ninja_dyndep_version = 1.0
-build CMakeFiles\neonECS.dir\src\entity.cpp.obj: dyndep
-
-build CMakeFiles\neonECS.dir\src\registry.cpp.obj: dyndep
-
-build CMakeFiles\neonECS.dir\src\storage.cpp.obj: dyndep
-
-build CMakeFiles\neonECS.dir\src\view.cpp.obj: dyndep
-

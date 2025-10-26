@@ -1,3 +1,0 @@
-ninja_dyndep_version = 1.0
-build CMakeFiles\neonECS_test.dir\test\neonECSTest.cpp.obj: dyndep
-
