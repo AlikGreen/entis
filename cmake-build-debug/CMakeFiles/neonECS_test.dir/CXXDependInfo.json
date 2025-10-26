@@ -1,0 +1,21 @@
+{
+	"bmi-installation" : null,
+	"compiler-frontend-variant" : "MSVC",
+	"compiler-id" : "MSVC",
+	"compiler-simulate-id" : "",
+	"config" : "Debug",
+	"cxx-modules" : {},
+	"dir-cur-bld" : "C:/Users/alikg/CLionProjects/neonECS/cmake-build-debug",
+	"dir-cur-src" : "C:/Users/alikg/CLionProjects/neonECS",
+	"dir-top-bld" : "C:/Users/alikg/CLionProjects/neonECS/cmake-build-debug",
+	"dir-top-src" : "C:/Users/alikg/CLionProjects/neonECS",
+	"exports" : [],
+	"forward-modules-from-target-dirs" : [],
+	"include-dirs" : 
+	[
+		"C:\\Users\\alikg\\CLionProjects\\neonECS\\include"
+	],
+	"language" : "CXX",
+	"linked-target-dirs" : [],
+	"module-dir" : "C:/Users/alikg/CLionProjects/neonECS/cmake-build-debug/CMakeFiles/neonECS_test.dir"
+}

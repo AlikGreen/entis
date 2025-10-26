@@ -1,0 +1,4 @@
+C:/Users/alikg/CLionProjects/neonECS/cmake-build-release/CMakeFiles/neonECS.dir
+C:/Users/alikg/CLionProjects/neonECS/cmake-build-release/CMakeFiles/neonECS_test.dir
+C:/Users/alikg/CLionProjects/neonECS/cmake-build-release/CMakeFiles/edit_cache.dir
+C:/Users/alikg/CLionProjects/neonECS/cmake-build-release/CMakeFiles/rebuild_cache.dir
