@@ -1,11 +1,12 @@
 #pragma once
 #include <typeindex>
 #include <unordered_map>
-#include <memory> // For std::unique_ptr
 #include <ranges>
+#include <vector>
 
 #include "storage.h"
 #include "view.h"
+#include "neonCore/memory.h"
 
 namespace Neon::ECS
 {
@@ -71,7 +72,6 @@ public:
     }
 private:
     std::unordered_map<std::type_index, Box<StorageBase>> componentStorages{};
-
     std::vector<EntityID> freeEntities{};
     size_t nextEntity = 0;
 };

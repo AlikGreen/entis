@@ -6,9 +6,6 @@
 #include <algorithm> // For std::max
 #include <utility>   // For std::forward / std::move
 
-// common.h should have #include <cstdint> and #include <limits>
-#include "common.h"
-
 namespace Neon::ECS
 {
 typedef uint32_t EntityID;
@@ -139,13 +136,7 @@ public:
     }
 
 private:
-    // --- Private Helper Methods for Paged Lookup ---
-
-    /**
-     * @brief Gets a pointer to the page for a given entity, but does not create it.
-     * @return A const pointer to the Page, or nullptr if it's not allocated.
-     */
-    [[nodiscard]] const Page* sparse_page_for(EntityID entityID) const
+    [[nodiscard]] const Page* sparse_page_for(const EntityID entityID) const
     {
         const size_t page_index = entityID >> PAGE_BITS;
         if (page_index >= sparse_pages.size())
@@ -155,29 +146,22 @@ private:
         return sparse_pages[page_index];
     }
 
-    /**
-     * @brief Gets a reference to a sparse entry, creating and initializing pages on demand.
-     * @return A writable reference to the sparse entry for the given entity.
-     */
-    size_t& sparse_entry_at(EntityID entityID)
+    size_t& sparse_entry_at(const EntityID entityID)
     {
         const size_t page_index = entityID >> PAGE_BITS;
         const size_t offset = entityID & (PAGE_SIZE - 1);
 
-        // 1. Grow the page directory if needed.
         if (page_index >= sparse_pages.size())
         {
             sparse_pages.resize(page_index + 1, nullptr);
         }
 
-        // 2. Allocate the specific page if it doesn't exist.
         if (!sparse_pages[page_index])
         {
             sparse_pages[page_index] = new Page;
-            sparse_pages[page_index]->fill(INVALID); // CRITICAL: Initialize new page.
+            sparse_pages[page_index]->fill(INVALID);
         }
 
-        // 3. Return the reference to the slot in the page.
         return (*sparse_pages[page_index])[offset];
     }
 };

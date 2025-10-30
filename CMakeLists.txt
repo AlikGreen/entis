@@ -3,6 +3,8 @@ project(neonECS)
 
 set(CMAKE_CXX_STANDARD 23)
 
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/neonCore)
+
 file(GLOB_RECURSE
         SRC_FILES
         CONFIGURE_DEPENDS
@@ -15,12 +17,13 @@ add_library(neonECS STATIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include/neonECS/neonECS.h
 )
 
+target_precompile_headers(neonECS PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/dependencies/neonCore/pch/pch.h")
+
 target_include_directories(neonECS PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-add_executable(neonECS_test
-        test/neonECSTest.cpp
-)
+target_link_libraries(neonECS PUBLIC neonCore)
 
+add_executable(neonECS_test test/neonECSTest.cpp)
 target_link_libraries(neonECS_test PRIVATE neonECS)

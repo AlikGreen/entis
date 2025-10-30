@@ -72,8 +72,8 @@ int main()
 
         {
             std::cout << "  > Render System:\n";
-            auto renderables = registry.view<Position, Renderable>();
-            for (const auto& [entity, pos, render] : renderables)
+            auto renderObjects = registry.view<Position, Renderable>();
+            for (const auto& [entity, pos, render] : renderObjects)
             {
                 std::cout << "    - Drawing '" << render.glyph << "' at (" << pos.x << ", " << pos.y << ")\n";
             }

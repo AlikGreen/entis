@@ -1,0 +1,3 @@
+[submodule "dependencies/neonCore"]
+	path = dependencies/neonCore
+	url = https://github.com/AlikGreen/NeonCore.git
