@@ -66,7 +66,7 @@ public:
         const std::type_index type = typeid(T);
 
         if (!componentStorages.contains(type))
-            componentStorages[type] = std::make_unique<Storage<T>>();
+            componentStorages[type] = makeBox<Storage<T>>();
 
         return *static_cast<Storage<T>*>(componentStorages.at(type).get());
     }
