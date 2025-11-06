@@ -3,8 +3,10 @@
 #include <vector>
 #include <limits>
 #include <stdexcept>
-#include <algorithm> // For std::max
-#include <utility>   // For std::forward / std::move
+#include <algorithm>
+#include <cstdint>
+#include <utility>
+#include <neonCore/memory.h>
 
 namespace Neon::ECS
 {
@@ -14,8 +16,15 @@ class StorageBase
 {
 public:
     virtual ~StorageBase() = default;
-
     virtual void remove(EntityID id) = 0;
+    [[nodiscard]] virtual size_t indexOf(EntityID entityID) const = 0;
+    [[nodiscard]] virtual bool has(EntityID id) const = 0;
+    [[nodiscard]] virtual size_t size() const = 0;
+    [[nodiscard]] virtual EntityID entityAt(size_t index) const = 0;
+    [[nodiscard]] virtual std::vector<EntityID> const& getDenseEntities() const = 0;
+
+    virtual void copyComponentFrom(const StorageBase& other, EntityID oldID, EntityID newID) = 0;
+    [[nodiscard]] virtual Box<StorageBase> cloneEmpty() const = 0;
 };
 
 
@@ -87,7 +96,7 @@ public:
         dense.pop_back();
     }
 
-    [[nodiscard]] size_t indexOf(EntityID entityID) const
+    [[nodiscard]] size_t indexOf(const EntityID entityID) const override
     {
         const Page* page = sparse_page_for(entityID);
 
@@ -110,7 +119,7 @@ public:
         return components[index];
     }
 
-    [[nodiscard]] bool has(const EntityID id) const
+    [[nodiscard]] bool has(const EntityID id) const override
     {
         return indexOf(id) != INVALID;
     }
@@ -120,19 +129,34 @@ public:
         return components.at(index);
     }
 
-    [[nodiscard]] size_t size() const
+    [[nodiscard]] size_t size() const override
     {
         return components.size();
     }
 
-    [[nodiscard]] EntityID entityAt(const size_t index) const
+    [[nodiscard]] EntityID entityAt(const size_t index) const override
     {
         return dense.at(index);
     }
 
-    [[nodiscard]] std::vector<EntityID> const& getDenseEntities() const
+    [[nodiscard]] std::vector<EntityID> const& getDenseEntities() const override
     {
         return dense;
+    }
+
+    void copyComponentFrom(const StorageBase& other, EntityID oldID, EntityID newID) override
+    {
+        const auto& otherStorage = static_cast<const Storage&>(other);
+        if (otherStorage.has(oldID))
+        {
+            const T& component = const_cast<Storage&>(otherStorage).get(oldID);
+            emplace(newID, component);
+        }
+    }
+
+    [[nodiscard]] Box<StorageBase> cloneEmpty() const override
+    {
+        return makeBox<Storage>();
     }
 
 private:
