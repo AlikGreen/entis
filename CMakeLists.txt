@@ -17,8 +17,6 @@ add_library(neonECS STATIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include/neonECS/neonECS.h
 )
 
-target_precompile_headers(neonECS PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/dependencies/neonCore/pch/pch.h")
-
 target_include_directories(neonECS PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
