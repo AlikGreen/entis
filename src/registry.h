@@ -22,6 +22,12 @@ class Registry
 public:
     Registry() = default;
 
+    Registry(const Registry&) = delete;
+    Registry& operator=(const Registry&) = delete;
+
+    Registry(Registry&&) = default;
+    Registry& operator=(Registry&&) = default;
+
     void merge(Registry const& other);
     Entity createEntity();
 
