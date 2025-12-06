@@ -6,7 +6,7 @@
 
 namespace Neon::ECS
 {
-    void Registry::merge(Registry const& other)
+    std::vector<Entity> Registry::merge(Registry const& other)
     {
         std::unordered_map<EntityID, EntityID> entityIDMap;
         std::unordered_set<EntityID> otherEntities;
@@ -41,5 +41,12 @@ namespace Neon::ECS
             }
         }
 
+        std::vector<Entity> newEntities{};
+        for (const auto id : entityIDMap | std::views::values)
+        {
+            newEntities.push_back(Entity(this, id));
+        }
+
+        return newEntities;
     }
 }

@@ -28,7 +28,7 @@ public:
     Registry(Registry&&) = default;
     Registry& operator=(Registry&&) = default;
 
-    void merge(Registry const& other);
+    std::vector<Entity> merge(Registry const& other);
     Entity createEntity();
 
     template<typename T, typename... Args>
