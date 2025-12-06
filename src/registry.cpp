@@ -23,7 +23,7 @@ namespace Neon::ECS
         for (EntityID oldEntityID : otherEntities)
         {
             const Entity newEntity = createEntity();
-            entityIDMap[oldEntityID] = newEntity;
+            entityIDMap[oldEntityID] = newEntity.id;
         }
 
         for (const auto& [type, otherStoragePtr] : other.componentStorages)

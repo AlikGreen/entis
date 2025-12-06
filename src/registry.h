@@ -5,12 +5,17 @@
 #include <vector>
 
 #include "storage.h"
-#include "view.h"
+#include "viewBase.h"
+
 #include "neonCore/memory.h"
 
 namespace Neon::ECS
 {
 class Entity;
+
+class ViewBase;
+template<typename... Components>
+class View;
 
 class Registry
 {
@@ -21,44 +26,20 @@ public:
     Entity createEntity();
 
     template<typename T, typename... Args>
-    T& emplace(EntityID entity, Args&&... args)
-    {
-        return storage<T>().emplace(entity, std::forward<Args>(args)...);
-    }
+    T& emplace(Entity entity, Args&&... args);
 
     template<typename T>
-    bool has(const EntityID entity)
-    {
-        return storage<T>().has(entity);
-    }
+    bool has(Entity entity);
 
     template<typename T>
-    T& get(const EntityID entity)
-    {
-        return storage<T>().get(entity);
-    }
+    T& get(Entity entity);
 
     template<typename T>
-    void remove(const EntityID entity)
-    {
-        storage<T>().remove(entity);
-        freeEntities.push_back(entity);
-    }
-
-    void destroy(const EntityID entity)
-    {
-        freeEntities.push_back(entity);
-        for (const auto &storage: componentStorages | std::views::values)
-        {
-            storage->remove(entity);
-        }
-    }
+    void remove(Entity entity);
+    void destroy(Entity entity);
 
     template<typename... Components>
-    View<Components...> view()
-    {
-        return View<Components...>(storage<Components>()...);
-    }
+    const View<Components...>& view();
 
     template<typename T>
     Storage<T>& storage()
@@ -71,8 +52,49 @@ public:
         return *static_cast<Storage<T>*>(componentStorages.at(type).get());
     }
 private:
+    friend class Entity;
+    friend class ViewBase;
+
+    template<typename T, typename... Args>
+    T& emplace(size_t entityId, Args&&... args)
+    {
+        ++version;
+        return storage<T>().emplace(entityId, std::forward<Args>(args)...);
+    }
+
+    template<typename T>
+    bool has(size_t entityId)
+    {
+        return storage<T>().has(entityId);
+    }
+
+    template<typename T>
+    T& get(size_t entityId)
+    {
+        return storage<T>().get(entityId);
+    }
+
+    template<typename T>
+    void remove(size_t entityId)
+    {
+        ++version;
+        storage<T>().remove(entityId);
+    }
+
+    void destroy(const size_t entityId)
+    {
+        ++version;
+        freeEntities.push_back(entityId);
+        for (const auto &storage: componentStorages | std::views::values)
+        {
+            storage->remove(entityId);
+        }
+    }
+
     std::unordered_map<std::type_index, Box<StorageBase>> componentStorages{};
+    std::unordered_map<std::type_index, Box<ViewBase>> viewCache{};
     std::vector<EntityID> freeEntities{};
     size_t nextEntity = 0;
+    size_t version = 0;
 };
 }

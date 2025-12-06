@@ -10,7 +10,7 @@ public:
     template<typename T>
     T& get()
     {
-        return registry->get<T>(id);;
+        return registry->get<T>(id);
     }
 
     template<typename T, typename... Args>
@@ -20,18 +20,14 @@ public:
     }
 
     template<typename T>
-    void remove()
+    void remove() const
     {
         registry->remove<T>(id);
     }
-
-    // ReSharper disable once CppNonExplicitConversionOperator
-    operator size_t() const
-    {
-        return id;
-    }
 private:
     friend class Registry;
+    template<typename... Components>
+    friend class View;
 
     explicit Entity(Registry* registry, size_t id);
 
@@ -48,4 +44,38 @@ inline Entity Registry::createEntity()
     freeEntities.pop_back();
     return Entity(this, id);
 }
+
+inline void Registry::destroy(const Entity entity)
+{
+    freeEntities.push_back(entity.id);
+    for (const auto &storage: componentStorages | std::views::values)
+    {
+        storage->remove(entity.id);
+    }
+}
+
+template<typename T, typename... Args>
+T& Registry::emplace(Entity entity, Args&&... args)
+{
+    return emplace<T>(entity.id, std::forward<Args>(args)...);
+}
+
+template<typename T>
+bool Registry::has(const Entity entity)
+{
+    return has<T>(entity.id);
+}
+
+template<typename T>
+T& Registry::get(const Entity entity)
+{
+    return get<T>(entity.id);
+}
+
+template<typename T>
+void Registry::remove(const Entity entity)
+{
+    remove<T>(entity.id);
+}
+
 }
