@@ -13,6 +13,12 @@ public:
         return registry->get<T>(id);
     }
 
+    template<typename T>
+    [[nodiscard]] bool has() const
+    {
+        return registry->has<T>(id);
+    }
+
     template<typename T, typename... Args>
     T& emplace(Args&&... args)
     {
