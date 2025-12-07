@@ -6,7 +6,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <utility>
-#include <neonCore/memory.h>
+#include <neonCore/neonCore.h>
 
 namespace Neon::ECS
 {

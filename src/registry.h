@@ -7,7 +7,7 @@
 #include "storage.h"
 #include "viewBase.h"
 
-#include "neonCore/memory.h"
+#include <neonCore/neonCore.h>
 
 namespace Neon::ECS
 {
