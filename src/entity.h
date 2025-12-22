@@ -30,6 +30,21 @@ public:
     {
         registry->remove<T>(id);
     }
+
+    bool operator==(const Entity& other) const
+    {
+        return id == other.id;
+    }
+
+    bool operator!=(const Entity& other) const
+    {
+        return !(*this == other);
+    }
+
+    [[nodiscard]] size_t getId() const
+    {
+        return id;
+    }
 private:
     friend class Registry;
     template<typename... Components>
@@ -53,11 +68,7 @@ inline Entity Registry::createEntity()
 
 inline void Registry::destroy(const Entity entity)
 {
-    freeEntities.push_back(entity.id);
-    for (const auto &storage: componentStorages | std::views::values)
-    {
-        storage->remove(entity.id);
-    }
+    destroy(entity.id);
 }
 
 template<typename T, typename... Args>
@@ -85,3 +96,12 @@ void Registry::remove(const Entity entity)
 }
 
 }
+
+template<>
+struct std::hash<Neon::ECS::Entity>
+{
+    size_t operator()(const Neon::ECS::Entity& e) const noexcept
+    {
+        return e.getId();
+    }
+};
