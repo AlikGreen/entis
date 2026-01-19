@@ -21,6 +21,7 @@ public:
 
     template<typename T, typename... Args>
     T& emplace(Args&&... args)
+    requires std::constructible_from<T, Args...>
     {
         return registry->emplace<T>(id, std::forward<Args>(args)...);
     }
@@ -71,10 +72,24 @@ inline void Registry::destroy(const Entity entity)
     destroy(entity.id);
 }
 
+inline bool Registry::isValid(const Entity entity) const
+{
+    return isValid(entity.id);
+
+}
+
 template<typename T, typename... Args>
 T& Registry::emplace(Entity entity, Args&&... args)
 {
     return emplace<T>(entity.id, std::forward<Args>(args)...);
+}
+
+inline void* Registry::emplaceTypeErased(Entity entity, size_t type, const void* data)
+{
+    StorageBase& storage = storageTypeErased(type);
+
+    ++version;
+    return storage.emplaceOpaquePtr(entity.id, data);
 }
 
 template<typename T>

@@ -209,23 +209,18 @@ const View<Components...>& Registry::view()
 {
     using ViewType = View<Components...>;
 
-    const std::type_index typeIndex = typeid(View<Components...>);
+    const size_t type = typeid(View<Components...>).hash_code();
 
-    const auto it = viewCache.find(typeIndex);
+    const auto it = viewCache.find(type);
     if (it != viewCache.end())
     {
-        // Cast from ViewBase* to ViewType*
-        auto *view = static_cast<ViewType*>(it->second.get());
-
-        if (view->version == version)
-        {
-            return *view;
-        }
+        if (it->second->version == version)
+            return *static_cast<ViewType*>(it->second.get());
     }
 
     auto newView = Box<ViewType>(new ViewType(this, storage<Components>()...));
     ViewType *viewPtr = newView.get();
-    viewCache[typeIndex] = std::move(newView);
+    viewCache[type] = std::move(newView);
 
     return *viewPtr;
 }

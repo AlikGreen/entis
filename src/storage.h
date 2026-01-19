@@ -1,32 +1,21 @@
 #pragma once
 #include <array>
+#include <utility>
 #include <vector>
 #include <limits>
 #include <stdexcept>
 #include <algorithm>
 #include <cstdint>
+#include <functional>
+#include <typeindex>
 #include <utility>
 #include <neonCore/neonCore.h>
+
+#include "storageBase.h"
 
 namespace Neon::ECS
 {
 typedef uint32_t EntityID;
-
-class StorageBase
-{
-public:
-    virtual ~StorageBase() = default;
-    virtual void remove(EntityID id) = 0;
-    [[nodiscard]] virtual size_t indexOf(EntityID entityID) const = 0;
-    [[nodiscard]] virtual bool has(EntityID id) const = 0;
-    [[nodiscard]] virtual size_t size() const = 0;
-    [[nodiscard]] virtual EntityID entityAt(size_t index) const = 0;
-    [[nodiscard]] virtual std::vector<EntityID> const& getDenseEntities() const = 0;
-
-    virtual void copyComponentFrom(const StorageBase& other, EntityID oldID, EntityID newID) = 0;
-    [[nodiscard]] virtual Box<StorageBase> cloneEmpty() const = 0;
-};
-
 
 template <typename T>
 class Storage final : public StorageBase
@@ -42,17 +31,23 @@ private:
 
     std::vector<T> components;
     std::vector<EntityID> dense;
-
-
+    ComponentMetadata m_metadata;
 public:
-    Storage() = default;
+    Storage()
+        : m_metadata(typeid(T).hash_code(), sizeof(T), alignof(T), std::type_index(typeid(T)))
+    {
+        m_metadata.getByIndex = [this](const size_t idx) -> void* {
+            return &this->getByIndex(idx);
+        };
+        m_metadata.get = [this](const EntityID id) -> void* {
+            return &this->get(id);
+        };
+    }
 
     ~Storage() override
     {
         for (const Page* page : sparse_pages)
-        {
             delete page;
-        }
     }
 
     Storage(const Storage&) = delete;
@@ -64,7 +59,7 @@ public:
     template <typename... Args>
     T& emplace(EntityID entityID, Args&&... args)
     {
-        size_t& sparse_entry = sparse_entry_at(entityID);
+        size_t& sparse_entry = sparseEntryAt(entityID);
 
         const size_t index = components.size();
         components.emplace_back(std::forward<Args>(args)...);
@@ -88,9 +83,9 @@ public:
         components[index_to_remove] = std::move(components[last_index]);
         dense[index_to_remove] = last_entity;
 
-        sparse_entry_at(last_entity) = index_to_remove;
+        sparseEntryAt(last_entity) = index_to_remove;
 
-        sparse_entry_at(id) = INVALID;
+        sparseEntryAt(id) = INVALID;
 
         components.pop_back();
         dense.pop_back();
@@ -98,7 +93,7 @@ public:
 
     [[nodiscard]] size_t indexOf(const EntityID entityID) const override
     {
-        const Page* page = sparse_page_for(entityID);
+        const Page* page = sparsePageFor(entityID);
 
         if (!page)
         {
@@ -159,8 +154,55 @@ public:
         return makeBox<Storage>();
     }
 
+    [[nodiscard]] const ComponentMetadata& metadata() const override
+    {
+        return m_metadata;
+    }
+
+    [[nodiscard]] void* getOpaquePtr(const EntityID id) override
+    {
+        return &get(id);
+    }
+
+    [[nodiscard]] void* getOpaquePtrByIndex(const size_t index) override
+    {
+        return &getByIndex(index);
+    }
+
+    void * emplaceOpaquePtr(EntityID id, const void *data) override
+    {
+        if (has(id))
+        {
+            return getOpaquePtr(id);
+        }
+
+        size_t& sparseEntry = sparseEntryAt(id);
+        const size_t index = components.size();
+
+        if (data)
+        {
+            const T* src = reinterpret_cast<const T*>(data);
+            components.emplace_back(*src);
+        }
+        else
+        {
+            if constexpr (std::is_default_constructible_v<T>)
+            {
+                components.emplace_back();
+            }
+            else
+            {
+                throw std::runtime_error("emplaceOpaquePtr: no data provided for non-default-constructible component type");
+            }
+        }
+
+        dense.emplace_back(id);
+        sparseEntry = index;
+        return &components.back();
+    }
+
 private:
-    [[nodiscard]] const Page* sparse_page_for(const EntityID entityID) const
+    [[nodiscard]] const Page* sparsePageFor(const EntityID entityID) const
     {
         const size_t page_index = entityID >> PAGE_BITS;
         if (page_index >= sparse_pages.size())
@@ -170,7 +212,7 @@ private:
         return sparse_pages[page_index];
     }
 
-    size_t& sparse_entry_at(const EntityID entityID)
+    size_t& sparseEntryAt(const EntityID entityID)
     {
         const size_t page_index = entityID >> PAGE_BITS;
         const size_t offset = entityID & (PAGE_SIZE - 1);
