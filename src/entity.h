@@ -7,6 +7,8 @@ namespace Neon::ECS
 class Entity
 {
 public:
+    static Entity null();
+
     template<typename T>
     T& get()
     {
@@ -40,6 +42,11 @@ public:
     bool operator!=(const Entity& other) const
     {
         return !(*this == other);
+    }
+
+    operator bool() const
+    {
+        return m_id != 0;
     }
 
     [[nodiscard]] size_t id() const

@@ -24,6 +24,17 @@ public:
         return entities.size();
     }
 
+    [[nodiscard]] bool empty() const
+    {
+        return entities.empty();
+    }
+
+    [[nodiscard]] auto front() const -> std::tuple<Entity, Components&...>
+    {
+        assert(!empty());
+        return at(0);
+    }
+
     std::tuple<Entity, Components&...> operator[](const size_t index)
     {
         return at(index);
@@ -128,6 +139,10 @@ private:
     size_t findSmallestStorageIndex(std::index_sequence<Is...>) const
     {
         size_t smallestIndex = 0;
+
+        // ReSharper is stupid this is used
+        // ReSharper disable once CppDFAUnreadVariable
+        // ReSharper disable once CppDFAUnusedValue
         size_t smallestSize = std::numeric_limits<size_t>::max();
 
         auto consider = [&](const size_t i, const size_t s)

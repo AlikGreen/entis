@@ -14,18 +14,6 @@
 
 namespace Neon::ECS
 {
-static size_t hashVector(const std::vector<size_t>& vec)
-{
-    size_t result = 0;
-    for (const size_t val : vec)
-    {
-        // Mix the element to reduce collisions
-        const size_t mixed = val * 0x9e3779b97f4a7c15; // arbitrary large prime
-        result ^= mixed; // XOR is order-independent
-    }
-    return result;
-}
-
 using TypeId = uint64_t;
 
 class Entity;
@@ -72,14 +60,16 @@ private:
     friend class Entity;
     friend class ViewBase;
     friend class TypeErasedRegistry;
+    template<typename... Components>
+    friend class View;
 
     template<typename T>
     Storage<T>& storage()
     {
         static Storage<T>* cached = nullptr;
-        static Registry* cachedRegistry = nullptr;  // ADD THIS
+        static Registry* cachedRegistry = nullptr;
 
-        if (cached && cachedRegistry == this) [[likely]]  // CHECK THIS
+        if (cached && cachedRegistry == this) [[likely]]
             return *cached;
 
         const uint64_t type = typeid(T).hash_code();
@@ -88,7 +78,7 @@ private:
             componentStorages[type] = makeBox<Storage<T>>();
 
         cached = static_cast<Storage<T>*>(componentStorages.at(type).get());
-        cachedRegistry = this;  // ADD THIS
+        cachedRegistry = this;
         return *cached;
     }
 
@@ -147,17 +137,8 @@ private:
 
     TypeErasedRegistry typeErasedRegistry;
 
-    struct IdentityHash
-    {
-        // This tag tells ankerl::unordered_dense NOT to apply additional mixing/avalanching
-
-        [[nodiscard]] auto operator()(uint64_t x) const noexcept -> uint64_t {
-            return x;
-        }
-    };
-
-    std::unordered_map<TypeId, Box<StorageBase>, IdentityHash> componentStorages{};
-    std::unordered_map<TypeId, Box<ViewBase>, IdentityHash> viewCache{};
+    std::unordered_map<TypeId, Box<StorageBase>> componentStorages{};
+    std::unordered_map<TypeId, Box<ViewBase>> viewCache{};
     std::vector<EntityID> freeEntities{};
     size_t nextEntity = 1;
     size_t version = 0;

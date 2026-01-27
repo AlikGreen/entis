@@ -6,11 +6,25 @@
 
 namespace Neon::ECS
 {
+    static size_t hashVector(const std::vector<size_t>& vec)
+    {
+        size_t result = 0;
+        for (const size_t val : vec)
+        {
+            // Mix the element to reduce collisions
+            const size_t mixed = val * 0x9e3779b97f4a7c15; // arbitrary large prime
+            result ^= mixed; // XOR is order-independent
+        }
+        return result;
+    }
+
+
     TypeErasedRegistry::TypeErasedRegistry(Registry *registry)
         : m_registry(registry) { }
 
     TypeErasedView& TypeErasedRegistry::view(const std::vector<uint64_t>& componentTypes)
     {
+        m_registry->version++;
         std::vector<StorageBase*> storages;
         storages.reserve(componentTypes.size());
 
@@ -39,6 +53,12 @@ namespace Neon::ECS
     {
         ++m_registry->version;
         return storage(type).emplaceOpaquePtr(entity.id(), data);
+    }
+
+    void TypeErasedRegistry::remove(const TypeId type, const Entity entityId) const
+    {
+        ++m_registry->version;
+        storage(type).remove(entityId.id());
     }
 
     StorageBase& TypeErasedRegistry::storage(const TypeId type) const

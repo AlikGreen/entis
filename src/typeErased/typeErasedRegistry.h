@@ -29,6 +29,8 @@ public:
     {
         registeredTypeErasedTypes[typeid(T).hash_code()] = { sizeof(T), alignof(T) };
     }
+
+    void remove(TypeId type, Entity entityId) const;
 private:
     StorageBase& storage(TypeId type) const;
 
