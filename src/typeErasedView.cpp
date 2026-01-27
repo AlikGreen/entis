@@ -1,5 +1,7 @@
 #include "typeErasedView.h"
 
+#include <limits>
+
 
 namespace Neon::ECS
 {
@@ -9,35 +11,21 @@ namespace Neon::ECS
         rebuild();
     }
 
-bool TypeErasedView::next()
-{
-    if (m_currentIndex >= m_entities.size())
-        return false;
-    m_currentIndex++;
-    return true;
-}
 
-void TypeErasedView::reset()
+TypeErasedView::ComponentPack TypeErasedView::at(const size_t index) const
 {
-    m_currentIndex = 0;
-}
-
-const TypeErasedView::ComponentPack& TypeErasedView::current() const
-{
-    if (m_currentIndex == 0 || m_currentIndex > m_entities.size())
+    if(index > m_entities.size())
     {
         // Return empty pack
         static const ComponentPack emptyPack = {};
         return emptyPack;
     }
 
-    const size_t idx = m_currentIndex - 1;
+    ComponentPack pack{};
+    pack.entityId = m_entities[index];
+    pack.components = m_componentPtrs[index];
 
-    // Update cached pack
-    m_cachedPack.entityId = m_entities[idx];
-    m_cachedPack.components = m_componentPtrs[idx];  // This copies, but m_cachedPack persists
-
-    return m_cachedPack;
+    return pack;
 }
 
 void TypeErasedView::rebuild()

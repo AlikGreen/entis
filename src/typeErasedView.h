@@ -1,5 +1,4 @@
 #pragma once
-#include <limits>
 
 #include "storageBase.h"
 #include "viewBase.h"
@@ -18,13 +17,9 @@ public:
     explicit TypeErasedView(Registry* registry, std::vector<StorageBase*> storages);
 
     [[nodiscard]] size_t size() const { return m_entities.size(); }
-
-    bool next();
-    void reset();
-    [[nodiscard]] const ComponentPack& current() const;
+    [[nodiscard]] ComponentPack at(size_t index) const;
 
 private:
-    mutable ComponentPack m_cachedPack;
     std::vector<StorageBase*> m_storages;
     std::vector<EntityID> m_entities;
     std::vector<std::vector<void*>> m_componentPtrs;

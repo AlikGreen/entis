@@ -92,6 +92,11 @@ inline void* Registry::emplaceTypeErased(Entity entity, size_t type, const void*
     return storage.emplaceOpaquePtr(entity.id, data);
 }
 
+inline Entity Registry::getEntity(const EntityID id)
+{
+    return Entity(this, id);
+}
+
 template<typename T>
 bool Registry::has(const Entity entity)
 {

@@ -27,6 +27,8 @@ static size_t hashVector(const std::vector<size_t>& vec)
     return result;
 }
 
+using TypeId = uint64_t;
+
 class Entity;
 
 class ViewBase;
@@ -65,7 +67,7 @@ public:
     template<typename... Components>
     const View<Components...>& view();
 
-    TypeErasedView& viewTypeErased(const std::vector<size_t>& componentTypes)
+    TypeErasedView& viewTypeErased(const std::vector<uint64_t>& componentTypes)
     {
         std::vector<StorageBase*> storages;
         storages.reserve(componentTypes.size());
@@ -93,9 +95,9 @@ public:
         return *viewPtr;
     }
 
-    void* emplaceTypeErased(Entity entity, size_t type, const void* data);
+    void* emplaceTypeErased(Entity entity, TypeId type, const void* data);
 
-    StorageBase& storageTypeErased(const size_t type)
+    StorageBase& storageTypeErased(const TypeId type)
     {
         if (!componentStorages.contains(type))
         {
@@ -109,22 +111,30 @@ public:
     }
 
     // Only needs to be done for type erased types
-    void registerType(const size_t type, const size_t size, const size_t alignment)
+    void registerType(const TypeId type, const size_t size, const size_t alignment)
     {
         registeredTypeErasedTypes[type] = { size, alignment };
+    }
+
+    template<typename T>
+    void registerType()
+    {
+        registeredTypeErasedTypes[typeid(T).hash_code()] = { sizeof(T), alignof(T) };
     }
 
 
     template<typename T>
     Storage<T>& storage()
     {
-        const size_t type = typeid(T).hash_code();
+        const uint64_t type = typeid(T).hash_code();
 
         if (!componentStorages.contains(type))
             componentStorages[type] = makeBox<Storage<T>>();
 
         return *static_cast<Storage<T>*>(componentStorages.at(type).get());
     }
+
+    Entity getEntity(EntityID id);
 private:
     friend class Entity;
     friend class ViewBase;
@@ -188,12 +198,12 @@ private:
         size_t alignment;
     };
 
-    std::unordered_map<size_t, Box<StorageBase>> componentStorages{};
-    std::unordered_map<size_t, Box<ViewBase>> viewCache{};
-    std::unordered_map<size_t, Box<TypeErasedView>> typeErasedViewCache{};
-    std::unordered_map<size_t, TypeErasedType> registeredTypeErasedTypes{};
+    std::unordered_map<TypeId, Box<StorageBase>> componentStorages{};
+    std::unordered_map<TypeId, Box<ViewBase>> viewCache{};
+    std::unordered_map<TypeId, Box<TypeErasedView>> typeErasedViewCache{};
+    std::unordered_map<TypeId, TypeErasedType> registeredTypeErasedTypes{};
     std::vector<EntityID> freeEntities{};
-    size_t nextEntity = 0;
+    size_t nextEntity = 1;
     size_t version = 0;
 };
 }
