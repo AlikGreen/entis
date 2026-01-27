@@ -1,9 +1,7 @@
 #pragma once
 #include <cassert>
-#include <typeindex>
 #include <ranges>
 #include <vector>
-#include <ankerl/unordered_dense.h>
 
 #include "storage.h"
 #include "viewBase.h"

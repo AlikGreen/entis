@@ -21,7 +21,7 @@ target_include_directories(neonECS PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-target_link_libraries(neonECS PUBLIC neonCore unordered_dense)
+target_link_libraries(neonECS PUBLIC neonCore)
 
 add_executable(neonECS_benchmark benchmarks/benchmark.cpp)
 target_link_libraries(neonECS_benchmark PRIVATE neonECS)
