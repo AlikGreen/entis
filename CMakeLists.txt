@@ -4,7 +4,6 @@ project(neonECS)
 set(CMAKE_CXX_STANDARD 23)
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/neonCore)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/unordered_dense)
 
 file(GLOB_RECURSE
         SRC_FILES
