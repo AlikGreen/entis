@@ -1,62 +1,31 @@
-===============================================================================
-  Neon ECS BENCHMARK RESULTS
-===============================================================================
-Configuration:
-  Entities: 30000
-  Iterations: 5
-  Date: 2025-10-26 11:29:58
+=== ECS Timing Summary (1000 frames) ===
 
--------------------------------------------------------------------------------
-  Entity Creation
--------------------------------------------------------------------------------
-  Create entities                                     0.188 ms
-  Per entity                                          0.006 us
--------------------------------------------------------------------------------
-  Component Addition
--------------------------------------------------------------------------------
-  Add Position (12B)                                  1.056 ms
-  Add Velocity (12B)                                  0.977 ms
-  Add Transform (64B)                                 1.698 ms
--------------------------------------------------------------------------------
-  Single Component Iteration
--------------------------------------------------------------------------------
-  Position iteration (x5)                             0.070 ms
-  Per iteration                                       0.014 ms
--------------------------------------------------------------------------------
-  Two Component Iteration
--------------------------------------------------------------------------------
-  Position + Velocity (x5)                            0.131 ms
-  Per iteration                                       0.026 ms
--------------------------------------------------------------------------------
-  Large Component Iteration
--------------------------------------------------------------------------------
-  LargeComponent (256B) (x5)                          0.180 ms
--------------------------------------------------------------------------------
-  Sparse Iteration
--------------------------------------------------------------------------------
-  50% match - count                               15000.000 entities
-  50% match - time                                    1.127 ms
-  10% match - count                                3000.000 entities
-  10% match - time                                    1.011 ms
--------------------------------------------------------------------------------
-  Cache Performance
--------------------------------------------------------------------------------
-  Sequential (view)                                   0.015 ms
-  Random access                                       0.684 ms
-  Slowdown factor                                    45.580 x
--------------------------------------------------------------------------------
-  Component Removal
--------------------------------------------------------------------------------
-  Remove Velocity                                     0.367 ms
+Total frame time: 430.699 ms  |  avg: 0.430699 ms / frame
 
--------------------------------------------------------------------------------
-  Memory Usage
--------------------------------------------------------------------------------
-  Initial                                             4 MB
-  After entity creation                               4 MB
-  After component additions                           9 MB
-  Final                                               5 MB
+[Entity lifecycle]
+  Creation:    4.015 ms total
+  Destruction: 1.142 ms total
 
-===============================================================================
-  TOTAL RUNTIME: 33.15 ms
-===============================================================================
+[Views]
+  1-component (Position)
+    View create: 48.785 ms total  |  0.048785 ms / frame
+    Iterate:     77.356 ms total  |  0.077356 ms / frame
+
+  2-component (Position, Velocity)
+    View create: 75.796 ms total  |  0.075796 ms / frame
+    Iterate:     100.246 ms total  |  0.100246 ms / frame
+
+  2-component (Position, Renderable)
+    View create: 6.399 ms total  |  0.006399 ms / frame
+    Iterate:     16.934 ms total  |  0.016934 ms / frame
+
+  3-component (Position, Velocity, EnemyTag)
+    View create: 6.976 ms total  |  0.006976 ms / frame
+    Iterate:     14.829 ms total  |  0.014829 ms / frame
+
+  3-component (Position, Velocity, ParticleTag)
+    View create: 27.046 ms total  |  0.027046 ms / frame
+    Iterate:     24.913 ms total  |  0.024913 ms / frame
+
+[Rendering]
+  Total drawn glyphs: 16200000

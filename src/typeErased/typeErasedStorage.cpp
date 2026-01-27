@@ -1,4 +1,5 @@
 #include "typeErasedStorage.h"
+#include <cstring>
 
 namespace Neon::ECS
 {

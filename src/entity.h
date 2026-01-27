@@ -10,31 +10,31 @@ public:
     template<typename T>
     T& get()
     {
-        return registry->get<T>(id);
+        return m_registry->get<T>(m_id);
     }
 
     template<typename T>
     [[nodiscard]] bool has() const
     {
-        return registry->has<T>(id);
+        return m_registry->has<T>(m_id);
     }
 
     template<typename T, typename... Args>
     T& emplace(Args&&... args)
     requires std::constructible_from<T, Args...>
     {
-        return registry->emplace<T>(id, std::forward<Args>(args)...);
+        return m_registry->emplace<T>(m_id, std::forward<Args>(args)...);
     }
 
     template<typename T>
     void remove() const
     {
-        registry->remove<T>(id);
+        m_registry->remove<T>(m_id);
     }
 
     bool operator==(const Entity& other) const
     {
-        return id == other.id;
+        return m_id == other.m_id;
     }
 
     bool operator!=(const Entity& other) const
@@ -42,9 +42,9 @@ public:
         return !(*this == other);
     }
 
-    [[nodiscard]] size_t getId() const
+    [[nodiscard]] size_t id() const
     {
-        return id;
+        return m_id;
     }
 private:
     friend class Registry;
@@ -53,8 +53,8 @@ private:
 
     explicit Entity(Registry* registry, size_t id);
 
-    Registry* registry;
-    size_t id;
+    Registry* m_registry;
+    size_t m_id;
 };
 
 inline Entity Registry::createEntity()
@@ -69,50 +69,46 @@ inline Entity Registry::createEntity()
 
 inline void Registry::destroy(const Entity entity)
 {
-    destroy(entity.id);
+    destroy(entity.id());
 }
 
 inline bool Registry::isValid(const Entity entity) const
 {
-    return isValid(entity.id);
+    return isValid(entity.id());
 
 }
 
 template<typename T, typename... Args>
 T& Registry::emplace(Entity entity, Args&&... args)
 {
-    return emplace<T>(entity.id, std::forward<Args>(args)...);
+    return emplace<T>(entity.id(), std::forward<Args>(args)...);
 }
-
-inline void* Registry::emplaceTypeErased(Entity entity, size_t type, const void* data)
-{
-    StorageBase& storage = storageTypeErased(type);
-
-    ++version;
-    return storage.emplaceOpaquePtr(entity.id, data);
-}
-
 inline Entity Registry::getEntity(const EntityID id)
 {
     return Entity(this, id);
 }
 
+inline TypeErasedRegistry& Registry::asTypeErased()
+{
+    return typeErasedRegistry;
+}
+
 template<typename T>
 bool Registry::has(const Entity entity)
 {
-    return has<T>(entity.id);
+    return has<T>(entity.id());
 }
 
 template<typename T>
 T& Registry::get(const Entity entity)
 {
-    return get<T>(entity.id);
+    return get<T>(entity.id());
 }
 
 template<typename T>
 void Registry::remove(const Entity entity)
 {
-    remove<T>(entity.id);
+    remove<T>(entity.id());
 }
 
 }
@@ -122,6 +118,6 @@ struct std::hash<Neon::ECS::Entity>
 {
     size_t operator()(const Neon::ECS::Entity& e) const noexcept
     {
-        return e.getId();
+        return e.id();
     }
 };

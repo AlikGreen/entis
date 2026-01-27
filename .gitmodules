@@ -1,3 +1,6 @@
 [submodule "dependencies/neonCore"]
 	path = dependencies/neonCore
 	url = https://github.com/AlikGreen/NeonCore.git
+[submodule "dependencies/unordered_dense"]
+	path = dependencies/unordered_dense
+	url = https://github.com/martinus/unordered_dense.git

@@ -16,6 +16,9 @@ template<typename... Components>
 class View final : public ViewBase
 {
 public:
+    View(const View&) = delete;
+    View& operator=(const View&) = delete;
+
     [[nodiscard]] size_t size() const
     {
         return entities.size();

@@ -1,17 +1,16 @@
 #pragma once
-#include <assert.h>
+#include <cassert>
 #include <typeindex>
-#include <unordered_map>
 #include <ranges>
 #include <vector>
+#include <ankerl/unordered_dense.h>
 
 #include "storage.h"
 #include "viewBase.h"
 
 #include <neonCore/neonCore.h>
 
-#include "typeErasedStorage.h"
-#include "typeErasedView.h"
+#include "typeErased/typeErasedRegistry.h"
 
 namespace Neon::ECS
 {
@@ -38,13 +37,13 @@ class View;
 class Registry
 {
 public:
-    Registry() = default;
+    Registry();
 
     Registry(const Registry&) = delete;
     Registry& operator=(const Registry&) = delete;
 
-    Registry(Registry&&) = default;
-    Registry& operator=(Registry&&) = default;
+    Registry(Registry&&) = delete;
+    Registry& operator=(Registry&&) = delete;
 
     std::vector<Entity> merge(Registry const& other);
     Entity createEntity();
@@ -67,77 +66,31 @@ public:
     template<typename... Components>
     const View<Components...>& view();
 
-    TypeErasedView& viewTypeErased(const std::vector<uint64_t>& componentTypes)
-    {
-        std::vector<StorageBase*> storages;
-        storages.reserve(componentTypes.size());
-
-        const size_t combinedType = hashVector(componentTypes);
-
-        const auto it = typeErasedViewCache.find(combinedType);
-        if (it != typeErasedViewCache.end())
-        {
-            if (it->second->version == version)
-                return *it->second;
-        }
-
-
-        for (auto& type : componentTypes)
-        {
-            auto* storage = &storageTypeErased(type);
-            storages.push_back(storage);
-        }
-
-        auto newView = makeBox<TypeErasedView>(this, std::move(storages));
-        TypeErasedView *viewPtr = newView.get();
-        typeErasedViewCache[combinedType] = std::move(newView);
-
-        return *viewPtr;
-    }
-
-    void* emplaceTypeErased(Entity entity, TypeId type, const void* data);
-
-    StorageBase& storageTypeErased(const TypeId type)
-    {
-        if (!componentStorages.contains(type))
-        {
-            assert(registeredTypeErasedTypes.contains(type) && "Type was viewed without being registered please register the type first");
-
-            auto info = registeredTypeErasedTypes.at(type);
-            componentStorages[type] = makeBox<TypeErasedStorage>(type, info.size, info.alignment);
-        }
-
-        return *componentStorages.at(type).get();
-    }
-
-    // Only needs to be done for type erased types
-    void registerType(const TypeId type, const size_t size, const size_t alignment)
-    {
-        registeredTypeErasedTypes[type] = { size, alignment };
-    }
-
-    template<typename T>
-    void registerType()
-    {
-        registeredTypeErasedTypes[typeid(T).hash_code()] = { sizeof(T), alignof(T) };
-    }
-
+    Entity getEntity(EntityID id);
+    TypeErasedRegistry& asTypeErased();
+private:
+    friend class Entity;
+    friend class ViewBase;
+    friend class TypeErasedRegistry;
 
     template<typename T>
     Storage<T>& storage()
     {
+        static Storage<T>* cached = nullptr;
+        static Registry* cachedRegistry = nullptr;  // ADD THIS
+
+        if (cached && cachedRegistry == this) [[likely]]  // CHECK THIS
+            return *cached;
+
         const uint64_t type = typeid(T).hash_code();
 
         if (!componentStorages.contains(type))
             componentStorages[type] = makeBox<Storage<T>>();
 
-        return *static_cast<Storage<T>*>(componentStorages.at(type).get());
+        cached = static_cast<Storage<T>*>(componentStorages.at(type).get());
+        cachedRegistry = this;  // ADD THIS
+        return *cached;
     }
-
-    Entity getEntity(EntityID id);
-private:
-    friend class Entity;
-    friend class ViewBase;
 
     template<typename T, typename... Args>
     T& emplace(size_t entityId, Args&&... args)
@@ -192,16 +145,19 @@ private:
         return true;
     }
 
-    struct TypeErasedType
+    TypeErasedRegistry typeErasedRegistry;
+
+    struct IdentityHash
     {
-        size_t size;
-        size_t alignment;
+        // This tag tells ankerl::unordered_dense NOT to apply additional mixing/avalanching
+
+        [[nodiscard]] auto operator()(uint64_t x) const noexcept -> uint64_t {
+            return x;
+        }
     };
 
-    std::unordered_map<TypeId, Box<StorageBase>> componentStorages{};
-    std::unordered_map<TypeId, Box<ViewBase>> viewCache{};
-    std::unordered_map<TypeId, Box<TypeErasedView>> typeErasedViewCache{};
-    std::unordered_map<TypeId, TypeErasedType> registeredTypeErasedTypes{};
+    std::unordered_map<TypeId, Box<StorageBase>, IdentityHash> componentStorages{};
+    std::unordered_map<TypeId, Box<ViewBase>, IdentityHash> viewCache{};
     std::vector<EntityID> freeEntities{};
     size_t nextEntity = 1;
     size_t version = 0;

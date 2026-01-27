@@ -1,6 +1,5 @@
 #pragma once
-#include "storageBase.h"
-#include <cstring>
+#include "../storageBase.h"
 #include <limits>
 
 namespace Neon::ECS
@@ -32,6 +31,9 @@ private:
 public:
     TypeErasedStorage(size_t type, size_t size, size_t alignment);
     ~TypeErasedStorage() override;
+
+    TypeErasedStorage(const TypeErasedStorage&) = delete;
+    TypeErasedStorage& operator=(const TypeErasedStorage&) = delete;
 
     void* emplace(EntityID entityID, const void* data = nullptr);
     void remove(EntityID id) override;

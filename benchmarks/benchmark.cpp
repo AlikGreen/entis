@@ -59,7 +59,7 @@ int main()
     constexpr int enemyCount = 2400;
     constexpr int bulletCount = 45000;
     constexpr int particleCount = 15000;
-    constexpr int frameCount = 1000;
+    constexpr int frameCount = 10000;
 
     double totalFrameTimeUs = 0.0;
 
@@ -151,7 +151,7 @@ int main()
         // 1-component view: Position only (measure overhead)
         {
             auto t0 = Clock::now();
-            auto posView = registry.view<Position>();
+            auto& posView = registry.view<Position>();
             auto t1 = Clock::now();
 
             for (auto [entity, pos] : posView)
@@ -169,7 +169,7 @@ int main()
         // Movement: 2-component view (Position, Velocity)
         {
             auto t0 = Clock::now();
-            auto movables = registry.view<Position, Velocity>();
+            auto& movables = registry.view<Position, Velocity>();
             auto t1 = Clock::now();
 
             for (auto [entity, pos, vel] : movables)
@@ -188,7 +188,7 @@ int main()
         // Enemy AI: 3-component view (Position, Velocity, EnemyTag)
         {
             auto t0 = Clock::now();
-            auto enemies = registry.view<Position, Velocity, EnemyTag>();
+            auto& enemies = registry.view<Position, Velocity, EnemyTag>();
             auto t1 = Clock::now();
 
             for (auto [entity, pos, vel, enemyTag] : enemies)
@@ -225,7 +225,7 @@ int main()
         // Particles: 3-component view (Position, Velocity, ParticleTag)
         {
             auto t0 = Clock::now();
-            auto particles = registry.view<Position, Velocity, ParticleTag>();
+            auto& particles = registry.view<Position, Velocity, ParticleTag>();
             auto t1 = Clock::now();
 
             for (auto [entity, pos, vel, particleTag] : particles)
@@ -247,7 +247,7 @@ int main()
         // Render: 2-component view (Position, Renderable)
         {
             auto t0 = Clock::now();
-            auto renderables = registry.view<Position, Renderable>();
+            auto& renderables = registry.view<Position, Renderable>();
             auto t1 = Clock::now();
 
             std::size_t frameDrawCount = 0;

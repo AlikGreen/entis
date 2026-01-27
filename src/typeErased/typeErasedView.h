@@ -1,13 +1,16 @@
 #pragma once
 
-#include "storageBase.h"
-#include "viewBase.h"
+#include "../storageBase.h"
+#include "../viewBase.h"
 
 namespace Neon::ECS
 {
 class TypeErasedView final : public ViewBase
 {
 public:
+    TypeErasedView(const TypeErasedView&) = delete;
+    TypeErasedView& operator=(const TypeErasedView&) = delete;
+
     struct ComponentPack
     {
         EntityID entityId;
@@ -20,6 +23,8 @@ public:
     [[nodiscard]] ComponentPack at(size_t index) const;
 
 private:
+    friend class TypeErasedRegistry;
+
     std::vector<StorageBase*> m_storages;
     std::vector<EntityID> m_entities;
     std::vector<std::vector<void*>> m_componentPtrs;

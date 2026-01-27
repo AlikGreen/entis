@@ -6,6 +6,8 @@
 
 namespace Neon::ECS
 {
+    Registry::Registry(): typeErasedRegistry(this) { }
+
     std::vector<Entity> Registry::merge(Registry const& other)
     {
         std::unordered_map<EntityID, EntityID> entityIDMap;
@@ -23,7 +25,7 @@ namespace Neon::ECS
         for (EntityID oldEntityID : otherEntities)
         {
             const Entity newEntity = createEntity();
-            entityIDMap[oldEntityID] = newEntity.id;
+            entityIDMap[oldEntityID] = newEntity.id();
         }
 
         for (const auto& [type, otherStoragePtr] : other.componentStorages)

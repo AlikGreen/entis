@@ -4,7 +4,7 @@
 
 namespace Neon::ECS
 {
-    Entity::Entity(Registry *registry, const size_t id) : registry(registry), id(id)
+    Entity::Entity(Registry *registry, const size_t id) : m_registry(registry), m_id(id)
     {
     }
 }
