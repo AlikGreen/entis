@@ -2,7 +2,7 @@
 #include "../storageBase.h"
 #include <limits>
 
-namespace Neon::ECS
+namespace entis
 {
 static void smart_resize(std::vector<uint8_t>& v, const size_t new_size)
 {
@@ -25,7 +25,7 @@ private:
 
     std::vector<Page*> sparse_pages;
     std::vector<uint8_t> componentData;  // Packed component bytes
-    std::vector<EntityID> dense;
+    std::vector<EntityId> dense;
     ComponentMetadata m_metadata;
 
 public:
@@ -35,25 +35,25 @@ public:
     TypeErasedStorage(const TypeErasedStorage&) = delete;
     TypeErasedStorage& operator=(const TypeErasedStorage&) = delete;
 
-    void* emplace(EntityID entityID, const void* data = nullptr);
-    void remove(EntityID id) override;
+    void* emplace(EntityId entityID, const void* data = nullptr);
+    void remove(EntityId id) override;
 
-    [[nodiscard]] size_t indexOf(EntityID entityID) const override;
+    [[nodiscard]] size_t indexOf(EntityId entityID) const override;
 
-    [[nodiscard]] bool has(EntityID id) const override;
+    [[nodiscard]] bool has(EntityId id) const override;
     [[nodiscard]] size_t size() const override;
-    [[nodiscard]] EntityID entityAt(size_t index) const override;
-    [[nodiscard]] std::vector<EntityID> const& getDenseEntities() const override;
+    [[nodiscard]] EntityId entityAt(size_t index) const override;
+    [[nodiscard]] std::vector<EntityId> const& getDenseEntities() const override;
     [[nodiscard]] const ComponentMetadata& metadata() const override;
 
-    [[nodiscard]] void* getOpaquePtr(EntityID id) override;
+    [[nodiscard]] void* getOpaquePtr(EntityId id) override;
     [[nodiscard]] void* getOpaquePtrByIndex(size_t index) override;
 
-    void copyComponentFrom(const StorageBase&, EntityID, EntityID) override {}
-    [[nodiscard]] Box<StorageBase> cloneEmpty() const override;
-    void* emplaceOpaquePtr(EntityID id, const void *data) override;
+    void copyComponentFrom(const StorageBase&, EntityId, EntityId) override {}
+    [[nodiscard]] grl::Box<StorageBase> cloneEmpty() const override;
+    void* emplaceOpaquePtr(EntityId id, const void *data) override;
 private:
-    [[nodiscard]] const Page* sparsePageFor(EntityID entityID) const;
-    size_t& sparseEntryAt(EntityID entityID);
+    [[nodiscard]] const Page* sparsePageFor(EntityId entityID) const;
+    size_t& sparseEntryAt(EntityId entityID);
 };
 }

@@ -3,7 +3,7 @@
 #include <limits>
 
 
-namespace Neon::ECS
+namespace entis
 {
     TypeErasedView::TypeErasedView(Registry* registry, std::vector<StorageBase*> storages)
         : ViewBase(registry), m_storages(std::move(storages))
@@ -17,7 +17,7 @@ TypeErasedView::ComponentPack TypeErasedView::at(const size_t index) const
     if(index > m_entities.size())
     {
         // Return empty pack
-        static const ComponentPack emptyPack = {};
+        static ComponentPack emptyPack{ 0, {} };
         return emptyPack;
     }
 
@@ -31,6 +31,9 @@ TypeErasedView::ComponentPack TypeErasedView::at(const size_t index) const
 void TypeErasedView::rebuild()
 {
     if (m_storages.empty()) return;
+
+    m_entities.clear();
+    m_componentPtrs.clear();
 
     // Find smallest storage
     size_t smallestIdx = 0;
@@ -51,7 +54,7 @@ void TypeErasedView::rebuild()
 
     for (size_t i = 0; i < smallest->size(); ++i)
     {
-        EntityID entityId = smallest->entityAt(i);
+        EntityId entityId = smallest->entityAt(i);
 
         // Check all storages have this entity
         std::vector<void*> ptrs;

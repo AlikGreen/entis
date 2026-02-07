@@ -2,7 +2,7 @@
 
 #include "registry.h"
 
-namespace Neon::ECS
+namespace entis
 {
     ViewBase::ViewBase(Registry *registry) : registry(registry)
     {

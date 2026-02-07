@@ -4,25 +4,25 @@
 
 #include "entity.h"
 
-namespace Neon::ECS
+namespace entis
 {
     Registry::Registry(): typeErasedRegistry(this) { }
 
     std::vector<Entity> Registry::merge(Registry const& other)
     {
-        std::unordered_map<EntityID, EntityID> entityIDMap;
-        std::unordered_set<EntityID> otherEntities;
+        std::unordered_map<EntityId, EntityId> entityIDMap;
+        std::unordered_set<EntityId> otherEntities;
 
         for (const auto &storagePtr: other.componentStorages | std::views::values)
         {
             const auto& denseEntities = storagePtr->getDenseEntities();
-            for (EntityID entityID : denseEntities)
+            for (EntityId entityID : denseEntities)
             {
                 otherEntities.insert(entityID);
             }
         }
 
-        for (EntityID oldEntityID : otherEntities)
+        for (EntityId oldEntityID : otherEntities)
         {
             const Entity newEntity = createEntity();
             entityIDMap[oldEntityID] = newEntity.id();

@@ -1,16 +1,17 @@
 #pragma once
 #include <cassert>
+#include <map>
 #include <ranges>
 #include <vector>
 
 #include "storage.h"
 #include "viewBase.h"
 
-#include <neonCore/neonCore.h>
+#include <grl/grl.h>
 
 #include "typeErased/typeErasedRegistry.h"
 
-namespace Neon::ECS
+namespace entis
 {
 using TypeId = uint64_t;
 
@@ -33,9 +34,14 @@ public:
 
     std::vector<Entity> merge(Registry const& other);
     Entity createEntity();
+    Entity createEntityWithId(EntityId id);
 
     template<typename T, typename... Args>
+    requires std::constructible_from<T, Args...>
     T& emplace(Entity entity, Args&&... args);
+
+    template<typename T>
+    T& assign(Entity entity, T&& component);
 
     template<typename T>
     bool has(Entity entity);
@@ -52,7 +58,7 @@ public:
     template<typename... Components>
     const View<Components...>& view();
 
-    Entity getEntity(EntityID id);
+    Entity getEntity(EntityId id);
     TypeErasedRegistry& asTypeErased();
 private:
     friend class Entity;
@@ -73,7 +79,7 @@ private:
         const uint64_t type = typeid(T).hash_code();
 
         if (!componentStorages.contains(type))
-            componentStorages[type] = makeBox<Storage<T>>();
+            componentStorages[type] = grl::makeBox<Storage<T>>();
 
         cached = static_cast<Storage<T>*>(componentStorages.at(type).get());
         cachedRegistry = this;
@@ -85,6 +91,13 @@ private:
     {
         ++version;
         return storage<T>().emplace(entityId, std::forward<Args>(args)...);
+    }
+
+    template<typename T>
+    T& assign(size_t entityId, T&& component)
+    {
+        ++version;
+        return storage<T>().assign(entityId, std::forward<T>(component));
     }
 
     template<typename T>
@@ -135,10 +148,20 @@ private:
 
     TypeErasedRegistry typeErasedRegistry;
 
-    std::unordered_map<TypeId, Box<StorageBase>> componentStorages{};
-    std::unordered_map<TypeId, Box<ViewBase>> viewCache{};
-    std::vector<EntityID> freeEntities{};
+    std::map<TypeId, grl::Box<StorageBase>> componentStorages{};
+    std::map<TypeId, grl::Box<ViewBase>> viewCache{};
+    std::vector<EntityId> freeEntities{};
     size_t nextEntity = 1;
     size_t version = 0;
 };
+
+template<typename T>
+void TypeErasedRegistry::registerType()
+{
+    const TypeId type = typeid(T).hash_code();
+
+    m_registry->storage<T>();
+
+    registeredTypeErasedTypes[type] = { sizeof(T), alignof(T) };
+}
 }

@@ -5,7 +5,7 @@
 #include "typeErasedView.h"
 #include "../storageBase.h"
 
-namespace Neon::ECS
+namespace entis
 {
     class Entity;
     class Registry;
@@ -25,12 +25,10 @@ public:
     void registerType(TypeId type, size_t size, size_t alignment);
 
     template<typename T>
-    void registerType()
-    {
-        registeredTypeErasedTypes[typeid(T).hash_code()] = { sizeof(T), alignof(T) };
-    }
+    void registerType();
 
     void remove(TypeId type, Entity entityId) const;
+    Registry& getRegistry() const;
 private:
     StorageBase& storage(TypeId type) const;
 
@@ -41,7 +39,7 @@ private:
     };
 
     Registry* m_registry;
-    std::unordered_map<TypeId, Box<TypeErasedView>> typeErasedViewCache{};
+    std::unordered_map<TypeId, grl::Box<TypeErasedView>> typeErasedViewCache{};
     std::unordered_map<TypeId, TypeErasedType> registeredTypeErasedTypes{};
 };
 }

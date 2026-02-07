@@ -1,13 +1,13 @@
 #include "typeErasedStorage.h"
 #include <cstring>
 
-namespace Neon::ECS
+namespace entis
 {
     TypeErasedStorage::TypeErasedStorage(size_t type, const size_t size, const size_t alignment)
         : m_metadata(type, size, alignment, typeid(void))
     {
         m_metadata.getByIndex = [this](const size_t idx) { return this->getOpaquePtrByIndex(idx); };
-        m_metadata.get = [this](const EntityID id) { return this->getOpaquePtr(id); };
+        m_metadata.get = [this](const EntityId id) { return this->getOpaquePtr(id); };
     }
 
     TypeErasedStorage::~TypeErasedStorage()
@@ -16,7 +16,7 @@ namespace Neon::ECS
             delete page;
     }
 
-    void * TypeErasedStorage::emplace(const EntityID entityID, const void *data)
+    void * TypeErasedStorage::emplace(const EntityId entityID, const void *data)
     {
         size_t& sparse_entry = sparseEntryAt(entityID);
 
@@ -38,13 +38,13 @@ namespace Neon::ECS
         return newComp;
     }
 
-    void TypeErasedStorage::remove(EntityID id)
+    void TypeErasedStorage::remove(EntityId id)
     {
         const size_t idx = indexOf(id);
         if (idx == INVALID) return;
 
         const size_t last = dense.size() - 1;
-        const EntityID last_entity = dense.back();
+        const EntityId last_entity = dense.back();
 
         if (idx != last)
         {
@@ -62,14 +62,14 @@ namespace Neon::ECS
         dense.pop_back();
     }
 
-    size_t TypeErasedStorage::indexOf(const EntityID entityID) const
+    size_t TypeErasedStorage::indexOf(const EntityId entityID) const
     {
         const Page* page = sparsePageFor(entityID);
         if (!page) return INVALID;
         return (*page)[entityID & (PAGE_SIZE - 1)];
     }
 
-    bool TypeErasedStorage::has(const EntityID id) const
+    bool TypeErasedStorage::has(const EntityId id) const
     {
         return indexOf(id) != INVALID;
     }
@@ -79,12 +79,12 @@ namespace Neon::ECS
         return dense.size();
     }
 
-    EntityID TypeErasedStorage::entityAt(const size_t index) const
+    EntityId TypeErasedStorage::entityAt(const size_t index) const
     {
         return dense.at(index);
     }
 
-    std::vector<EntityID> const & TypeErasedStorage::getDenseEntities() const
+    std::vector<EntityId> const & TypeErasedStorage::getDenseEntities() const
     {
         return dense;
     }
@@ -94,7 +94,7 @@ namespace Neon::ECS
         return m_metadata;
     }
 
-    void * TypeErasedStorage::getOpaquePtr(const EntityID id)
+    void * TypeErasedStorage::getOpaquePtr(const EntityId id)
     {
         const size_t idx = indexOf(id);
         if (idx == INVALID) return nullptr;
@@ -107,12 +107,12 @@ namespace Neon::ECS
         return componentData.data() + (index * m_metadata.size);
     }
 
-    Box<StorageBase> TypeErasedStorage::cloneEmpty() const
+    grl::Box<StorageBase> TypeErasedStorage::cloneEmpty() const
     {
-        return makeBox<TypeErasedStorage>(m_metadata.type, m_metadata.size, m_metadata.alignment);
+        return grl::makeBox<TypeErasedStorage>(m_metadata.type, m_metadata.size, m_metadata.alignment);
     }
 
-    void* TypeErasedStorage::emplaceOpaquePtr(EntityID id, const void *data)
+    void* TypeErasedStorage::emplaceOpaquePtr(EntityId id, const void *data)
     {
         if (has(id))
         {
@@ -139,14 +139,14 @@ namespace Neon::ECS
         return newComp;
     }
 
-    const TypeErasedStorage::Page * TypeErasedStorage::sparsePageFor(const EntityID entityID) const
+    const TypeErasedStorage::Page * TypeErasedStorage::sparsePageFor(const EntityId entityID) const
     {
         const size_t page_index = entityID >> PAGE_BITS;
         if (page_index >= sparse_pages.size()) return nullptr;
         return sparse_pages[page_index];
     }
 
-    size_t & TypeErasedStorage::sparseEntryAt(const EntityID entityID)
+    size_t & TypeErasedStorage::sparseEntryAt(const EntityId entityID)
     {
         const size_t page_index = entityID >> PAGE_BITS;
         const size_t offset = entityID & (PAGE_SIZE - 1);

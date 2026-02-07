@@ -2,12 +2,13 @@
 
 #include "registry.h"
 
-namespace Neon::ECS
+namespace entis
 {
 class Entity
 {
 public:
     static Entity null();
+    explicit Entity(Registry* registry, size_t id);
 
     template<typename T>
     T& get()
@@ -34,31 +35,17 @@ public:
         m_registry->remove<T>(m_id);
     }
 
-    bool operator==(const Entity& other) const
-    {
-        return m_id == other.m_id;
-    }
+    bool operator==(const Entity& other) const;
+    bool operator!=(const Entity& other) const;
 
-    bool operator!=(const Entity& other) const
-    {
-        return !(*this == other);
-    }
+    operator bool() const;
 
-    operator bool() const
-    {
-        return m_id != 0;
-    }
-
-    [[nodiscard]] size_t id() const
-    {
-        return m_id;
-    }
+    [[nodiscard]] size_t id() const;
+    bool isValid() const;
 private:
     friend class Registry;
     template<typename... Components>
     friend class View;
-
-    explicit Entity(Registry* registry, size_t id);
 
     Registry* m_registry;
     size_t m_id;
@@ -69,9 +56,32 @@ inline Entity Registry::createEntity()
     if (freeEntities.empty())
         return Entity(this, nextEntity++);
 
-    const EntityID id = freeEntities.back();
+    const EntityId id = freeEntities.back();
     freeEntities.pop_back();
     return Entity(this, id);
+}
+
+inline Entity Registry::createEntityWithId(const EntityId id)
+{
+    if(id >= nextEntity)
+    {
+        for(EntityId i = nextEntity; i < id; i++)
+        {
+            freeEntities.push_back(i);
+        }
+
+        nextEntity = id + 1;
+        return Entity(this, id);
+    }
+
+    const auto it = std::ranges::find(freeEntities, id);
+    if(it != freeEntities.end())
+    {
+        freeEntities.erase(it);
+        return Entity(this, id);
+    }
+
+    return Entity::null();
 }
 
 inline void Registry::destroy(const Entity entity)
@@ -86,11 +96,19 @@ inline bool Registry::isValid(const Entity entity) const
 }
 
 template<typename T, typename... Args>
-T& Registry::emplace(Entity entity, Args&&... args)
+requires std::constructible_from<T, Args...>
+T& Registry::emplace(const Entity entity, Args&&... args)
 {
     return emplace<T>(entity.id(), std::forward<Args>(args)...);
 }
-inline Entity Registry::getEntity(const EntityID id)
+
+template<typename T>
+T & Registry::assign(const Entity entity, T &&component)
+{
+    return assign<T>(entity.id(), std::forward<T>(component));
+}
+
+inline Entity Registry::getEntity(const EntityId id)
 {
     return Entity(this, id);
 }
@@ -121,9 +139,9 @@ void Registry::remove(const Entity entity)
 }
 
 template<>
-struct std::hash<Neon::ECS::Entity>
+struct std::hash<entis::Entity>
 {
-    size_t operator()(const Neon::ECS::Entity& e) const noexcept
+    size_t operator()(const entis::Entity& e) const noexcept
     {
         return e.id();
     }

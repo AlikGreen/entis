@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.29)
-project(neonECS)
+project(entis)
 
 set(CMAKE_CXX_STANDARD 23)
 
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/neonCore)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/grl)
 
 file(GLOB_RECURSE
         SRC_FILES
@@ -12,19 +12,19 @@ file(GLOB_RECURSE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/*.h
 )
 
-add_library(neonECS STATIC
+add_library(entis STATIC
         ${SRC_FILES}
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/neonECS/neonECS.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/entis/entis.h
 )
 
-target_include_directories(neonECS PUBLIC
+target_include_directories(entis PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-target_link_libraries(neonECS PUBLIC neonCore)
+target_link_libraries(entis PUBLIC grl)
 
-add_executable(neonECS_benchmark benchmarks/benchmark.cpp)
-target_link_libraries(neonECS_benchmark PRIVATE neonECS)
+add_executable(entis_benchmark benchmarks/benchmark.cpp)
+target_link_libraries(entis_benchmark PRIVATE entis)
 
-add_executable(neonECS_typeErasedBenchmark benchmarks/benchmarkTypeErased.cpp)
-target_link_libraries(neonECS_typeErasedBenchmark PRIVATE neonECS)
+add_executable(entis_typeErasedBenchmark benchmarks/benchmarkTypeErased.cpp)
+target_link_libraries(entis_typeErasedBenchmark PRIVATE entis)

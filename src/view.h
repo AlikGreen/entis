@@ -6,7 +6,7 @@
 #include "entity.h"
 #include "viewBase.h"
 
-namespace Neon::ECS
+namespace entis
 {
     class Entity;
     class Registry;
@@ -96,7 +96,7 @@ private:
     std::tuple<Storage<Components>&...> storages;
     using IndexTuple = std::tuple<std::conditional_t<true, size_t, Components>...>;
     std::vector<IndexTuple> indices{};
-    std::vector<EntityID> entities{};
+    std::vector<EntityId> entities{};
 
     template<size_t... Is>
     std::optional<IndexTuple> findIndicesForEntity(size_t entityId, std::index_sequence<Is...>)
@@ -236,7 +236,7 @@ const View<Components...>& Registry::view()
             return *static_cast<ViewType*>(it->second.get());
     }
 
-    auto newView = Box<ViewType>(new ViewType(this, storage<Components>()...));
+    auto newView = grl::Box<ViewType>(new ViewType(this, storage<Components>()...));
     ViewType *viewPtr = newView.get();
     viewCache[type] = std::move(newView);
 

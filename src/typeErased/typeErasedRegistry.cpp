@@ -4,7 +4,7 @@
 #include "../registry.h"
 #include "../entity.h"
 
-namespace Neon::ECS
+namespace entis
 {
     static size_t hashVector(const std::vector<size_t>& vec)
     {
@@ -24,10 +24,6 @@ namespace Neon::ECS
 
     TypeErasedView& TypeErasedRegistry::view(const std::vector<uint64_t>& componentTypes)
     {
-        m_registry->version++;
-        std::vector<StorageBase*> storages;
-        storages.reserve(componentTypes.size());
-
         const size_t combinedType = hashVector(componentTypes);
 
         const auto it = typeErasedViewCache.find(combinedType);
@@ -37,12 +33,18 @@ namespace Neon::ECS
                 return *it->second;
         }
 
+        m_registry->version++;
+
+        std::vector<StorageBase*> storages;
+        storages.reserve(componentTypes.size());
+
         for (auto& type : componentTypes)
         {
             storages.push_back(&storage(type));
         }
 
-        auto newView = makeBox<TypeErasedView>(m_registry, std::move(storages));
+        auto newView = grl::makeBox<TypeErasedView>(m_registry, std::move(storages));
+        newView->version = m_registry->version;
         TypeErasedView *viewPtr = newView.get();
         typeErasedViewCache[combinedType] = std::move(newView);
 
@@ -61,14 +63,21 @@ namespace Neon::ECS
         storage(type).remove(entityId.id());
     }
 
+    Registry & TypeErasedRegistry::getRegistry() const
+    {
+        return *m_registry;
+    }
+
     StorageBase& TypeErasedRegistry::storage(const TypeId type) const
     {
-        if (m_registry->componentStorages.size() <= type)
+        if (!m_registry->componentStorages.contains(type))
         {
-            assert(registeredTypeErasedTypes.contains(type) && "Type was viewed without being registered please register the type first");
+            assert(registeredTypeErasedTypes.contains(type) &&
+                   "Type was viewed without being registered");
 
             auto info = registeredTypeErasedTypes.at(type);
-            m_registry->componentStorages[type] = makeBox<TypeErasedStorage>(type, info.size, info.alignment);
+            m_registry->componentStorages[type] =
+                grl::makeBox<TypeErasedStorage>(type, info.size, info.alignment);
         }
 
         return *m_registry->componentStorages.at(type).get();

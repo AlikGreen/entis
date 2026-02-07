@@ -1,9 +1,11 @@
 #pragma once
 
+#include <span>
+
 #include "../storageBase.h"
 #include "../viewBase.h"
 
-namespace Neon::ECS
+namespace entis
 {
 class TypeErasedView final : public ViewBase
 {
@@ -13,8 +15,8 @@ public:
 
     struct ComponentPack
     {
-        EntityID entityId;
-        std::vector<void*> components;
+        EntityId entityId;
+        std::span<void* const> components;
     };
 
     explicit TypeErasedView(Registry* registry, std::vector<StorageBase*> storages);
@@ -26,7 +28,7 @@ private:
     friend class TypeErasedRegistry;
 
     std::vector<StorageBase*> m_storages;
-    std::vector<EntityID> m_entities;
+    std::vector<EntityId> m_entities;
     std::vector<std::vector<void*>> m_componentPtrs;
     size_t m_currentIndex = 0;
 

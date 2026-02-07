@@ -1,7 +1,7 @@
 #pragma once
 #include <cstdint>
 
-namespace Neon::ECS
+namespace entis
 {
     class Registry;
 
