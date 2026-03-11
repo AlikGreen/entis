@@ -22,6 +22,7 @@ target_include_directories(entis PUBLIC
 )
 
 target_link_libraries(entis PUBLIC grl)
+target_compile_definitions(entis PUBLIC NOMINMAX)
 
 add_executable(entis_benchmark benchmarks/benchmark.cpp)
 target_link_libraries(entis_benchmark PRIVATE entis)
