@@ -1,3 +1,0 @@
-[submodule "dependencies/grl"]
-	path = dependencies/grl
-	url = https://github.com/AlikGreen/grl.git

@@ -1,167 +1,175 @@
 #pragma once
-#include <cassert>
-#include <map>
-#include <ranges>
-#include <vector>
+#include <functional>
+#include <string>
+#include <array>
+#include <unordered_map>
 
-#include "storage.h"
-#include "viewBase.h"
-
-#include <grl/grl.h>
-
-#include "typeErased/typeErasedRegistry.h"
+#include "archetype.h"
+#include "entity.h"
+#include "ecsContext.h"
 
 namespace entis
 {
-using TypeId = uint64_t;
-
 class Entity;
-
-class ViewBase;
-template<typename... Components>
-class View;
-
 class Registry
 {
 public:
-    Registry();
-
-    Registry(const Registry&) = delete;
-    Registry& operator=(const Registry&) = delete;
-
-    Registry(Registry&&) = delete;
-    Registry& operator=(Registry&&) = delete;
-
-    std::vector<Entity> merge(Registry const& other);
-    Entity createEntity();
-    Entity createEntityWithId(EntityId id);
-
-    template<typename T, typename... Args>
-    requires std::constructible_from<T, Args...>
-    T& emplace(Entity entity, Args&&... args);
+    [[nodiscard]] Entity create() { return Entity(m_context.createEntity(), *this); }
+    void destroy(const Entity e) { m_context.destroyEntity(e.id()); }
+    [[nodiscard]] bool valid(const Entity e) const { return m_context.isValid(e.id()); }
 
     template<typename T>
-    T& assign(Entity entity, T&& component);
-
-    template<typename T>
-    bool has(Entity entity);
-
-    template<typename T>
-    T& get(Entity entity);
-
-    template<typename T>
-    void remove(Entity entity);
-    void destroy(Entity entity);
-
-    bool isValid(Entity entity) const;
-
-    template<typename... Components>
-    const View<Components...>& view();
-
-    Entity getEntity(EntityId id);
-    TypeErasedRegistry& asTypeErased();
-private:
-    friend class Entity;
-    friend class ViewBase;
-    friend class TypeErasedRegistry;
-    template<typename... Components>
-    friend class View;
-
-    template<typename T>
-    Storage<T>& storage()
+    T& add(Entity e, const T& comp)
     {
-        static Storage<T>* cached = nullptr;
-        static Registry* cachedRegistry = nullptr;
+        ComponentId compId = componentId<std::remove_cvref_t<T>>();
+        return *static_cast<T*>(m_context.add(e.id(), compId, const_cast<T*>(&comp)));
+    }
 
-        if (cached && cachedRegistry == this) [[likely]]
-            return *cached;
-
-        const uint64_t type = typeid(T).hash_code();
-
-        if (!componentStorages.contains(type))
-            componentStorages[type] = grl::makeBox<Storage<T>>();
-
-        cached = static_cast<Storage<T>*>(componentStorages.at(type).get());
-        cachedRegistry = this;
-        return *cached;
+    template<typename T>
+    T& add(Entity e, T&& comp)
+    {
+        ComponentId compId = componentId<std::remove_cvref_t<T>>();
+        return *static_cast<T*>(m_context.add(e.id(), compId, &comp));
     }
 
     template<typename T, typename... Args>
-    T& emplace(size_t entityId, Args&&... args)
+    requires std::is_constructible_v<T, Args...>
+    T& emplace(Entity e, Args&&... args)
     {
-        ++version;
-        return storage<T>().emplace(entityId, std::forward<Args>(args)...);
+        // FIXME
+        return add(e, T(std::forward<Args>(args)...));
     }
 
-    template<typename T>
-    T& assign(size_t entityId, T&& component)
-    {
-        ++version;
-        return storage<T>().assign(entityId, std::forward<T>(component));
-    }
+    EcsContext& context() { return m_context; }
 
-    template<typename T>
-    bool has(size_t entityId)
+    template<typename... Components, typename Fn>
+    requires std::invocable<Fn&, EntityId, Components&...>
+    void each(Fn&& fn)
     {
-        return storage<T>().has(entityId);
-    }
-
-    template<typename T>
-    T& get(size_t entityId)
-    {
-        return storage<T>().get(entityId);
-    }
-
-    template<typename T>
-    void remove(size_t entityId)
-    {
-        ++version;
-        storage<T>().remove(entityId);
-    }
-
-    void destroy(const size_t entityId)
-    {
-        ++version;
-        freeEntities.push_back(entityId);
-        for (const auto &storage: componentStorages | std::views::values)
+        for (Archetype* arch : matchingArchetypes<Components...>())
         {
-            storage->remove(entityId);
+            std::array<PagedColumn*, sizeof...(Components)> columns = getColumns<Components...>(*arch);
+            for (size_t row = 0; row < arch->rows(); row++)
+            {
+                invokeForRow<Components...>(*arch, columns, row, fn, std::index_sequence_for<Components...>{});
+            }
         }
     }
 
-    bool isValid(const size_t entityId) const
+private:
+    EcsContext m_context;
+
+    template<typename... Components>
+    [[nodiscard]] ArchetypeSignature makeSignature()
     {
-        // Check if ID is 0 (invalid sentinel)
-        if (entityId == 0)
-            return false;
-
-        // Check if entity was never created
-        if (entityId >= nextEntity)
-            return false;
-
-        // Check if entity has been destroyed
-        if (std::ranges::find(freeEntities, entityId) != freeEntities.end())
-            return false;
-
-        return true;
+        ArchetypeSignature sig;
+        (sig.set(componentId<Components>()), ...);
+        return sig;
     }
 
-    TypeErasedRegistry typeErasedRegistry;
+    template<typename... Components>
+    Archetype& getArchetype()
+    {
+        const ArchetypeSignature sig = makeSignature<Components...>();
+        return m_context.getOrCreateArchetype(sig);
+    }
 
-    std::map<TypeId, grl::Box<StorageBase>> componentStorages{};
-    std::map<TypeId, grl::Box<ViewBase>> viewCache{};
-    std::vector<EntityId> freeEntities{};
-    size_t nextEntity = 1;
-    size_t version = 0;
+    template<typename... Components>
+    std::vector<Archetype*> matchingArchetypes()
+    {
+        std::vector<Archetype*> archetypes{};
+        const ArchetypeSignature sig = makeSignature<Components...>();
+        for(auto& [signature, archetype] : m_context.m_archetypes)
+        {
+            if((signature & sig) == sig)
+                archetypes.push_back(&archetype);
+        }
+
+        return archetypes;
+    }
+
+    template<typename... Components>
+    std::array<PagedColumn*, sizeof...(Components)> getColumns(Archetype& archetype)
+    {
+        return
+        {
+            archetype.findColumn(componentId<Components>())...
+        };
+    }
+
+    template<typename... Components, typename Fn, size_t... Indices>
+    requires std::invocable<Fn&, EntityId, Components&...>
+    static void invokeForRow(
+        Archetype& archetype,
+        const std::array<PagedColumn*, sizeof...(Components)>& columns,
+        size_t row,
+        Fn& fn,
+        std::index_sequence<Indices...>)
+    {
+        fn(archetype.entityAt(row), *static_cast<Components*>(columns[Indices]->get(row))...);
+    }
+
+    template<typename T>
+    ComponentId componentId()
+    {
+        static ComponentId id = [this]() -> ComponentId
+        {
+            const auto name = std::string(typeName<T>());
+
+            return m_context.registerComponent(
+                name,
+                sizeof(T),
+                alignof(T),
+                [](void* ptr) { std::destroy_at(static_cast<T*>(ptr)); },
+            [](void* dst, void* src) { ::new (dst) T(std::move(*static_cast<T*>(src))); }
+            );
+        }();
+
+        return id;
+    }
+
+    template<typename T>
+    static constexpr std::string_view typeName()
+    {
+        std::string_view sig;
+        std::string_view prefix;
+        std::string_view suffix;
+
+#if defined(__clang__)
+        sig = __PRETTY_FUNCTION__;
+        prefix = "[T = ";
+        suffix = "]";
+#elif defined(__GNUC__)
+        sig = __PRETTY_FUNCTION__;
+        prefix = "with T = ";
+        suffix = "]";
+#elif defined(_MSC_VER)
+        sig = __FUNCSIG__;
+        prefix = "entis::Registry::typeName<";
+        suffix = ">(void)";
+#else
+#error "Compiler not supported for compile-time type reflection!"
+#endif
+
+        // extract the core template argument string
+        size_t start = sig.find(prefix);
+        if (start == std::string_view::npos) return "";
+        start += prefix.size();
+
+        size_t end = sig.rfind(suffix);
+        if (end == std::string_view::npos || end < start) return "";
+
+        std::string_view type_name = sig.substr(start, end - start);
+
+        // remove MSVC's "struct", "class", and "enum" prefixes
+        if (type_name.starts_with("struct "))
+            type_name.remove_prefix(7);
+        else if (type_name.starts_with("class "))
+            type_name.remove_prefix(6);
+        else if (type_name.starts_with("enum "))
+            type_name.remove_prefix(5);
+
+        return type_name;
+    }
 };
-
-template<typename T>
-void TypeErasedRegistry::registerType()
-{
-    const TypeId type = typeid(T).hash_code();
-
-    m_registry->storage<T>();
-
-    registeredTypeErasedTypes[type] = { sizeof(T), alignof(T) };
-}
 }

@@ -3,8 +3,6 @@ project(entis)
 
 set(CMAKE_CXX_STANDARD 23)
 
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/dependencies/grl)
-
 file(GLOB_RECURSE
         SRC_FILES
         CONFIGURE_DEPENDS
@@ -21,7 +19,6 @@ target_include_directories(entis PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-target_link_libraries(entis PUBLIC grl)
 target_compile_definitions(entis PUBLIC NOMINMAX)
 
 add_executable(entis_benchmark benchmarks/benchmark.cpp)
