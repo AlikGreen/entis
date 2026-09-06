@@ -54,7 +54,7 @@ int main()
 {
     entis::Registry registry;
 
-    constexpr size_t entityCount = 1'000'000;
+    constexpr size_t entityCount = 100'000;
     constexpr size_t warmupIterations = 100;
     constexpr size_t benchmarkIterations = 1'000;
 
@@ -77,9 +77,8 @@ int main()
 
         if (i % 2 == 0)
         {
-            registry.emplace<EnemyTag>(entity);
-            registry.emplace<Health>(
-                entity,
+            entity.emplace<EnemyTag>();
+            entity.emplace<Health>(
                 100,
                 100,
                 1.f
@@ -88,83 +87,157 @@ int main()
 
         if (i % 9)
         {
-            registry.emplace<ProjectileTag>(entity);
+            entity.emplace<ProjectileTag>();
         }
     }
 
     volatile float sink = 0.0f;
 
-    auto query = [&]
+    // -------------------------------------------------------------------------
+    // Warm up both paths
+    // -------------------------------------------------------------------------
+
+    for (size_t i = 0; i < warmupIterations; ++i)
     {
-        registry.each<EnemyTag, Transform>(
-            [&](entis::EntityId, EnemyTag&, const Transform& transform)
+        registry.each<Transform, EnemyTag>(
+            [&](entis::Entity, const Transform& transform, EnemyTag&)
             {
                 sink += transform.x;
             }
         );
-    };
+    }
+
+    auto view = registry.view<Transform, EnemyTag>();
 
     for (size_t i = 0; i < warmupIterations; ++i)
-        query();
+    {
+        for (auto [entity, transform, tag] : view)
+        {
+            (void)entity;
+            (void)tag;
 
-    uint64_t totalSetupNs = 0;
+            sink += transform.x;
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Benchmark direct each()
+    // -------------------------------------------------------------------------
+
     uint64_t totalEachNs = 0;
 
     for (size_t iteration = 0; iteration < benchmarkIterations; ++iteration)
     {
-        bool firstIteration = true;
-        auto start = Clock::now();
-        auto first = start;
+        const auto start = Clock::now();
 
         registry.each<Transform, EnemyTag>(
-            [&](entis::EntityId, const Transform& transform, EnemyTag&)
+            [&](entis::Entity, const Transform& transform, EnemyTag&)
             {
-                if (firstIteration)
-                {
-                    first = Clock::now();
-                    firstIteration = false;
-                }
-
                 sink += transform.x;
             }
         );
 
-        auto end = Clock::now();
+        const auto end = Clock::now();
 
-        const uint64_t setupNs =
-            std::chrono::duration_cast<std::chrono::nanoseconds>(
-                first - start
-            ).count();
-
-        const uint64_t eachNs =
-            std::chrono::duration_cast<std::chrono::nanoseconds>(
-                end - start
-            ).count();
-
-        totalSetupNs += setupNs;
-        totalEachNs += eachNs;
+        totalEachNs += std::chrono::duration_cast<std::chrono::nanoseconds>(
+            end - start
+        ).count();
     }
 
-    const double averageSetupNs =
-        static_cast<double>(totalSetupNs) / benchmarkIterations;
+    // -------------------------------------------------------------------------
+    // Benchmark view iteration
+    //
+    // IMPORTANT:
+    // The view is created before the benchmark, so this measures iteration
+    // rather than view construction.
+    // -------------------------------------------------------------------------
+
+    uint64_t totalViewNs = 0;
+
+    for (size_t iteration = 0; iteration < benchmarkIterations; ++iteration)
+    {
+        const auto start = Clock::now();
+
+        for (auto [entity, transform, tag] : view)
+        {
+            (void)entity;
+            (void)tag;
+
+            sink += transform.x;
+        }
+
+        const auto end = Clock::now();
+
+        totalViewNs += std::chrono::duration_cast<std::chrono::nanoseconds>(
+            end - start
+        ).count();
+    }
+
+    // -------------------------------------------------------------------------
+    // Benchmark view construction separately
+    // -------------------------------------------------------------------------
+
+    uint64_t totalViewSetupNs = 0;
+
+    for (size_t iteration = 0; iteration < benchmarkIterations; ++iteration)
+    {
+        const auto start = Clock::now();
+
+        auto testView = registry.view<Transform, EnemyTag>();
+
+        const auto end = Clock::now();
+
+        totalViewSetupNs += std::chrono::duration_cast<std::chrono::nanoseconds>(
+            end - start
+        ).count();
+
+        // Prevent optimizer from considering the view completely unused.
+        if (iteration == benchmarkIterations - 1)
+        {
+            for (auto [entity, transform, tag] : testView)
+            {
+                (void)entity;
+                (void)tag;
+                sink += transform.x * 0.0f;
+            }
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Results
+    // -------------------------------------------------------------------------
 
     const double averageEachNs =
         static_cast<double>(totalEachNs) / benchmarkIterations;
 
-    const double averageIterationNs =
-        averageEachNs - averageSetupNs;
+    const double averageViewNs =
+        static_cast<double>(totalViewNs) / benchmarkIterations;
+
+    const double averageViewSetupNs =
+        static_cast<double>(totalViewSetupNs) / benchmarkIterations;
 
     std::cout
         << "Entities:          " << entityCount << '\n'
         << "Iterations:        " << benchmarkIterations << '\n'
         << '\n'
-        << "Average each:      " << averageEachNs / 1'000.0 << " us\n"
-        << "Average setup:     " << averageSetupNs / 1'000.0 << " us\n"
-        << "Average iteration:  " << averageIterationNs / 1'000.0 << " us\n"
-        << " ns\n";
+        << "Direct each():\n"
+        << "  Average:         " << averageEachNs << " ns\n"
+        << "  Average:         " << averageEachNs / 1'000.0 << " us\n"
+        << '\n'
+        << "View iteration:\n"
+        << "  Average:         " << averageViewNs << " ns\n"
+        << "  Average:         " << averageViewNs / 1'000.0 << " us\n"
+        << '\n'
+        << "View construction:\n"
+        << "  Average:         " << averageViewSetupNs << " ns\n"
+        << "  Average:         " << averageViewSetupNs / 1'000.0 << " us\n"
+        << '\n'
+        << "View vs each:\n"
+        << "  Difference:      " << (averageViewNs - averageEachNs) << " ns\n"
+        << "  Ratio:           " << (averageViewNs / averageEachNs) << "x\n"
+        << '\n'
+        << "Sink: " << sink << '\n';
 
     for (auto entity : allEntities)
         registry.destroy(entity);
-
-    std::cout << "Sink: " << sink << '\n';
 }

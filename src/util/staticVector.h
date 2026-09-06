@@ -30,6 +30,7 @@ private:
     size_t m_size{};
     T m_data[Capacity];
 
+public:
     struct Iterator
     {
         using IteratorCategory = std::forward_iterator_tag;

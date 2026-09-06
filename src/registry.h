@@ -11,6 +11,8 @@
 namespace entis
 {
 class Entity;
+template<typename... Components>
+class View;
 class Registry
 {
 public:
@@ -43,7 +45,7 @@ public:
     EcsContext& context() { return m_context; }
 
     template<typename... Components, typename Fn>
-    requires std::invocable<Fn&, EntityId, Components&...>
+    requires std::invocable<Fn&, Entity, Components&...>
     void each(Fn&& fn)
     {
         for (Archetype* arch : matchingArchetypes<Components...>())
@@ -56,7 +58,12 @@ public:
         }
     }
 
+    template<typename... Components>
+    View<Components...> view();
 private:
+    template<typename... Components>
+    friend class View;
+
     EcsContext m_context;
 
     template<typename... Components>
@@ -98,15 +105,15 @@ private:
     }
 
     template<typename... Components, typename Fn, size_t... Indices>
-    requires std::invocable<Fn&, EntityId, Components&...>
-    static void invokeForRow(
+    requires std::invocable<Fn&, Entity, Components&...>
+    void invokeForRow(
         Archetype& archetype,
         const std::array<PagedColumn*, sizeof...(Components)>& columns,
         size_t row,
         Fn& fn,
         std::index_sequence<Indices...>)
     {
-        fn(archetype.entityAt(row), *static_cast<Components*>(columns[Indices]->get(row))...);
+        fn(Entity(archetype.entityAt(row), *this), *static_cast<Components*>(columns[Indices]->get(row))...);
     }
 
     template<typename T>
@@ -172,4 +179,22 @@ private:
         return type_name;
     }
 };
+
+template<typename T>
+T& Entity::add(const T &comp)
+{
+    return m_registry.add(*this, comp);
+}
+
+template<typename T>
+T& Entity::add(T &&comp)
+{
+    return m_registry.add(*this, std::forward<T>(comp));
+}
+
+template<typename T, typename ... Args> requires std::is_constructible_v<T, Args...>
+T& Entity::emplace(Args &&...args)
+{
+    return m_registry.emplace<T, Args...>(*this, std::forward<Args>(args)...);
+}
 }
