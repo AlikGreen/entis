@@ -4,6 +4,7 @@
 #include "componentMeta.h"
 #include "util/pagedColumn.h"
 #include "util/pagedVector.h"
+#include "util/sparsePagedArray.h"
 #include "util/staticVector.h"
 
 
@@ -26,6 +27,12 @@ public:
     [[nodiscard]] EntityId entityAt(size_t row) const;
     [[nodiscard]] size_t rowOf(EntityId id) const;
     [[nodiscard]] size_t rows() const;
+
+    size_t pages() const;
+
+    static constexpr size_t kElementsPerPage = 256;
+
+    PagedVector<EntityId, kElementsPerPage>& rowEntities();
 private:
     friend class EcsContext;
     friend class Registry;
@@ -35,8 +42,8 @@ private:
     PagedColumn* findColumn(ComponentId id);
     ComponentMeta getMeta(ComponentId id);
 
-    PagedVector<size_t, 1024> m_entityToRow;
-    std::vector<EntityId> m_rowToEntity;
+    SparsePagedArray<size_t, 1024> m_entityToRow;
+    PagedVector<EntityId, kElementsPerPage> m_rowToEntity;
     std::vector<PagedColumn> m_columns;
     StaticVector<ComponentMeta, 8> m_componentMetas;
 };

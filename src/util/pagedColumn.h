@@ -9,13 +9,11 @@ namespace entis
 class  PagedColumn
 {
 public:
-    PagedColumn(const size_t elementSize, const size_t alignment, const size_t pageSize)
+    PagedColumn(const size_t elementSize, const size_t alignment, const size_t elementsPerPage)
          : m_elementSize(elementSize),
            m_alignment(alignment),
-           m_stride(
-               ((elementSize + alignment - 1) / alignment) * alignment
-           ),
-           m_elementsPerPage(pageSize / m_stride)
+           m_stride(((elementSize + alignment - 1) / alignment) * alignment),
+           m_elementsPerPage(elementsPerPage)
     {
         assert(m_alignment > 0);
         assert(m_elementsPerPage > 0);

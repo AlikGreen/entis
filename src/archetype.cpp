@@ -4,12 +4,17 @@
 
 namespace entis
 {
+    PagedVector<EntityId, Archetype::kElementsPerPage> & Archetype::rowEntities()
+    {
+        return m_rowToEntity;
+    }
+
     Archetype::Archetype(const StaticVector<ComponentMeta, 8>& componentMetas)
         : m_componentMetas(componentMetas)
     {
         for(const auto& meta : m_componentMetas)
         {
-            m_columns.emplace_back(meta.size, meta.alignment, 2*1024*1024); // 2MB per page. just a random number
+            m_columns.emplace_back(meta.size, meta.alignment, kElementsPerPage);
         }
     }
 
@@ -18,7 +23,7 @@ namespace entis
     {
         const size_t row = m_rowToEntity.size();
 
-        m_entityToRow.insert(entityId, row);
+        m_entityToRow.set(entityId, row);
         m_rowToEntity.push_back(entityId);
 
         for (PagedColumn& column : m_columns)
@@ -29,7 +34,7 @@ namespace entis
 
     void* Archetype::set(const EntityId entityId, const ComponentId componentId, void *data)
     {
-        const size_t row = m_entityToRow.at(entityId);
+        const size_t row = *m_entityToRow.get(entityId); // FIXME
 
         PagedColumn* column = findColumn(componentId);
         const ComponentMeta& meta = getMeta(componentId);
@@ -46,7 +51,7 @@ namespace entis
 
     void Archetype::remove(const EntityId entityId)
     {
-        const size_t row = m_entityToRow.at(entityId);
+        const size_t row = *m_entityToRow.get(entityId); // FIXME
         const size_t lastRow = rows() - 1;
 
         for(size_t i = 0; i < m_columns.size(); i++)
@@ -73,7 +78,7 @@ namespace entis
             const EntityId movedEntity = m_rowToEntity[lastRow];
 
             m_rowToEntity[row] = movedEntity;
-            m_entityToRow.insert(movedEntity, row);
+            m_entityToRow.set(movedEntity, row);
         }
 
         m_rowToEntity.pop_back();
@@ -82,8 +87,8 @@ namespace entis
 
     void Archetype::moveComponents(const EntityId entityId, Archetype &newArchetype)
     {
-        const size_t srcRow = m_entityToRow.at(entityId);
-        const size_t dstRow = newArchetype.m_entityToRow.at(entityId);
+        const size_t srcRow = *m_entityToRow.get(entityId); // FIXME
+        const size_t dstRow = *newArchetype.m_entityToRow.get(entityId); // FIXME
 
         for (size_t i = 0; i < m_columns.size(); ++i)
         {
@@ -118,7 +123,7 @@ namespace entis
 
             const EntityId movedEntity = m_rowToEntity[lastRow];
             m_rowToEntity[srcRow] = movedEntity;
-            m_entityToRow.insert(movedEntity, srcRow);
+            m_entityToRow.set(movedEntity, srcRow);
         }
 
         for (PagedColumn& column : m_columns)
@@ -132,17 +137,22 @@ namespace entis
 
     EntityId Archetype::entityAt(const size_t row) const
     {
-        return m_rowToEntity.at(row);
+        return m_rowToEntity[row]; // FIXME
     }
 
     size_t Archetype::rowOf(const EntityId id) const
     {
-        return m_entityToRow.at(id);
+        return *m_entityToRow.get(id);
     }
 
     size_t Archetype::rows() const
     {
         return m_rowToEntity.size();
+    }
+
+    size_t Archetype::pages() const
+    {
+        return m_columns[0].pageCount();
     }
 
     int Archetype::findColumnIndex(const ComponentId id)
