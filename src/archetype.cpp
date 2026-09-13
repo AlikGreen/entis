@@ -95,10 +95,11 @@ namespace entis
             const ComponentMeta& meta = m_componentMetas[i];
 
             PagedColumn& srcColumn = m_columns[i];
-            PagedColumn& dstColumn = *newArchetype.findColumn(meta.id);
+            PagedColumn* dstColumn = newArchetype.findColumn(meta.id);
+            if(!dstColumn) continue;
 
             void* src = srcColumn.get(srcRow);
-            void* dst = dstColumn.get(dstRow);
+            void* dst = dstColumn->get(dstRow);
 
             meta.moveCtor(dst, src);
             meta.dtor(src);

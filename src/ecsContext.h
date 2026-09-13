@@ -28,6 +28,8 @@ public:
     void destroyEntity(EntityId id);
 
     void* add(EntityId entityId, ComponentId componentId, void* data);
+    [[nodiscard]] bool has(EntityId entityId, ComponentId componentId) const;
+    bool remove(EntityId entityId, ComponentId componentId);
 private:
     friend class Registry;
 

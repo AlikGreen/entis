@@ -16,21 +16,21 @@ class View;
 class Registry
 {
 public:
-    [[nodiscard]] Entity create() { return Entity(m_context.createEntity(), *this); }
+    [[nodiscard]] Entity create() { return {m_context.createEntity(), *this}; }
     void destroy(const Entity e) { m_context.destroyEntity(e.id()); }
     [[nodiscard]] bool valid(const Entity e) const { return m_context.isValid(e.id()); }
 
     template<typename T>
-    T& add(Entity e, const T& comp)
+    T& add(const Entity e, const T& comp)
     {
-        ComponentId compId = componentId<std::remove_cvref_t<T>>();
+        const ComponentId compId = componentId<std::remove_cvref_t<T>>();
         return *static_cast<T*>(m_context.add(e.id(), compId, const_cast<T*>(&comp)));
     }
 
     template<typename T>
-    T& add(Entity e, T&& comp)
+    T& add(const Entity e, T&& comp)
     {
-        ComponentId compId = componentId<std::remove_cvref_t<T>>();
+        const ComponentId compId = componentId<std::remove_cvref_t<T>>();
         return *static_cast<T*>(m_context.add(e.id(), compId, &comp));
     }
 
@@ -38,8 +38,22 @@ public:
     requires std::is_constructible_v<T, Args...>
     T& emplace(Entity e, Args&&... args)
     {
-        // FIXME
+        // FIXME do a proper emplace
         return add(e, T(std::forward<Args>(args)...));
+    }
+
+    template<typename T>
+    bool has(const Entity e)
+    {
+        const ComponentId compId = componentId<std::remove_cvref_t<T>>();
+        return m_context.has(e.id(), compId);
+    }
+
+    template<typename T>
+    bool remove(const Entity e)
+    {
+        const ComponentId compId = componentId<std::remove_cvref_t<T>>();
+        return m_context.remove(e.id(), compId);
     }
 
     EcsContext& context() { return m_context; }
@@ -196,5 +210,17 @@ template<typename T, typename ... Args> requires std::is_constructible_v<T, Args
 T& Entity::emplace(Args &&...args)
 {
     return m_registry.emplace<T, Args...>(*this, std::forward<Args>(args)...);
+}
+
+template<typename T>
+bool Entity::has() const
+{
+    return m_registry.has<T>(*this);
+}
+
+template<typename T>
+bool Entity::remove()
+{
+    return m_registry.remove<T>(*this);
 }
 }

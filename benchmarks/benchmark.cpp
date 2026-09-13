@@ -170,7 +170,7 @@ int main()
 
         size_t count = 0;
 
-        for (auto [entity, tag, transform] : view)
+        for (const auto& [entity, tag, transform] : view)
         {
             (void)entity;
             (void)tag;

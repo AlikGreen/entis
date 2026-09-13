@@ -76,6 +76,34 @@ namespace entis {
         return newArchetype.set(entityId, componentId, data);
     }
 
+    bool EcsContext::has(const EntityId entityId, const ComponentId componentId) const
+    {
+        const ArchetypeSignature sig = m_entitySignatures.at(entityId);
+        return sig.test(componentId);
+    }
+
+    bool EcsContext::remove(const EntityId entityId, const ComponentId componentId)
+    {
+        const ArchetypeSignature oldSignature = m_entitySignatures.at(entityId);
+        if(!oldSignature.test(componentId)) return false;
+
+        ArchetypeSignature newSignature = oldSignature;
+        newSignature.reset(componentId);
+        m_entitySignatures[entityId] = newSignature;
+
+        Archetype& newArchetype = getOrCreateArchetype(newSignature);
+
+        newArchetype.addEntity(entityId);
+
+        if(oldSignature.any())
+        {
+            if(Archetype* oldArchetype = getArchetype(oldSignature))
+                oldArchetype->moveComponents(entityId, newArchetype);
+        }
+
+        return true;
+    }
+
     Archetype* EcsContext::getArchetype(const ArchetypeSignature& signature)
     {
         if(const auto it = m_archetypes.find(signature); it != m_archetypes.end())

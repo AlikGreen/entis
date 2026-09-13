@@ -15,6 +15,8 @@ public:
 
     }
 
+    struct Sentinel {};
+
     struct Iterator
     {
         using iterator_category = std::forward_iterator_tag;
@@ -35,8 +37,6 @@ public:
 
         value_type operator*() const
         {
-            auto archetype = m_view.m_archetypes[m_archetypeIndex];
-            size_t row = m_pageIndex * Archetype::kElementsPerPage + m_pageRow;
             return createTuple(Entity(m_entityPage[m_pageRow], m_registry), m_pages, m_pageRow, std::index_sequence_for<Components...>{});
         }
 
@@ -44,30 +44,30 @@ public:
         {
             m_pageRow++;
 
-            if (m_pageRow < m_pageSize)
-                return *this;
-
-            ++m_pageIndex;
-
-            if (m_pageIndex < m_archetype->pages())
+            if (m_pageRow > m_pageSize) [[unlikely]]
             {
-                m_pageRow = 0;
+                ++m_pageIndex;
+
+                if (m_pageIndex < m_archetype->pages())
+                {
+                    m_pageRow = 0;
+                    loadPage();
+                    return *this;
+                }
+
+                ++m_archetypeIndex;
+
+                if (m_archetypeIndex >= m_view.m_archetypes.size())
+                {
+                    m_archetype = nullptr;
+                    m_pageRow = 0;
+                    m_pageIndex = 0;
+                    return *this;
+                }
+
+                loadArchetype();
                 loadPage();
-                return *this;
             }
-
-            ++m_archetypeIndex;
-
-            if (m_archetypeIndex >= m_view.m_archetypes.size())
-            {
-                m_archetype = nullptr;
-                m_pageRow = 0;
-                m_pageIndex = 0;
-                return *this;
-            }
-
-            loadArchetype();
-            loadPage();
 
             return *this;
         }
@@ -79,14 +79,14 @@ public:
             return tmp;
         }
 
-        friend bool operator== (const Iterator& a, const Iterator& b)
+        friend bool operator==(const Iterator& it, Sentinel)
         {
-            return &a.m_view == &b.m_view && a.m_pageRow == b.m_pageRow && a.m_pageIndex == b.m_pageIndex && a.m_archetypeIndex == b.m_archetypeIndex;
+            return it.m_archetype == nullptr;
         }
 
-        friend bool operator!= (const Iterator& a, const Iterator& b)
+        friend bool operator!=(const Iterator& it, Sentinel s)
         {
-            return !(a == b);
+            return !(it == s);
         }
     private:
         Registry& m_registry;
@@ -160,13 +160,28 @@ public:
         return Iterator(*this, 0);
     }
 
-    Iterator end()
+    Sentinel end()
     {
-        return Iterator(*this, m_archetypes.size());
+        return Sentinel{};
+    }
+
+    size_t size()
+    {
+        if(m_size) return *m_size;
+
+        m_size = 0;
+        for(const auto archetype : m_archetypes)
+        {
+            *m_size += archetype->rows();
+        }
+
+        return *m_size;
     }
 private:
     std::vector<Archetype*> m_archetypes;
     Registry& m_registry;
+    std::optional<size_t> m_size = std::nullopt;
+
 };
 
 template<typename ... Components>

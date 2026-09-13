@@ -24,6 +24,12 @@ public:
     template<typename T, typename... Args>
     requires std::is_constructible_v<T, Args...>
     T& emplace(Args&&... args);
+
+    template<typename T>
+    [[nodiscard]] bool has() const;
+
+    template<typename T>
+    bool remove();
 private:
     EntityId m_id;
     Registry& m_registry;
