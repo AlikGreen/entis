@@ -41,6 +41,13 @@ public:
         return *static_cast<T*>(m_context.add(e.id(), compId, &comp));
     }
 
+    template<typename T>
+    T& get(const Entity e)
+    {
+        const ComponentId compId = componentId<std::remove_cvref_t<T>>();
+        return *static_cast<T*>(m_context.get(e.id(), compId));
+    }
+
     template<typename T, typename... Args>
     requires std::is_constructible_v<T, Args...>
     T& emplace(Entity e, Args&&... args)
@@ -238,6 +245,12 @@ template<typename T>
 T& Entity::add(T &&comp)
 {
     return m_registry.add(*this, std::forward<T>(comp));
+}
+
+template<typename T>
+T &Entity::get()
+{
+    return m_registry.get<T>(*this);
 }
 
 template<typename T, typename ... Args> requires std::is_constructible_v<T, Args...>

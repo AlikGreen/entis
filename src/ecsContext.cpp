@@ -81,6 +81,15 @@ namespace entis
         return newArchetype.set(entityId, componentId, data);
     }
 
+    void* EcsContext::get(const EntityId entityId, const ComponentId componentId)
+    {
+        const ArchetypeSignature sig = m_entitySignatures.at(entityId);
+        if(!sig.test(componentId)) return nullptr;
+        Archetype* archetype = getArchetype(sig);
+        const size_t row = archetype->rowOf(entityId);
+        return archetype->findColumn(componentId)->get(row);
+    }
+
     bool EcsContext::has(const EntityId entityId, const ComponentId componentId) const
     {
         const ArchetypeSignature sig = m_entitySignatures.at(entityId);

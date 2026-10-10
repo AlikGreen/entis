@@ -24,6 +24,9 @@ public:
     template<typename T>
     T& add(T&& comp);
 
+    template<typename T>
+    T& get();
+
     template<typename T, typename... Args>
     requires std::is_constructible_v<T, Args...>
     T& emplace(Args&&... args);
