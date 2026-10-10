@@ -1,5 +1,6 @@
 #pragma once
 #include <bitset>
+#include <unordered_map>
 
 #include "componentMeta.h"
 #include "util/pagedColumn.h"
@@ -22,6 +23,7 @@ public:
     void* set(EntityId entityId, ComponentId componentId, void* data);
     void remove(EntityId entityId);
     void moveComponents(EntityId entityId, Archetype& newArchetype);
+    void merge(const Archetype& other, const std::unordered_map<EntityId, EntityId>& idMap);
 
 
     [[nodiscard]] EntityId entityAt(size_t row) const;

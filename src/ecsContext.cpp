@@ -1,12 +1,16 @@
 #include "ecsContext.h"
 
-namespace entis {
+#include <ranges>
+
+namespace entis
+{
     ComponentId EcsContext::registerComponent(
         const std::string &name,
         const uint32_t size,
         const uint32_t alignment,
         const DestructorFn dtor,
-        const MoveConstructorFn moveCtor)
+        const MoveFn moveCtor,
+        const CopyFn copyCtor)
     {
         if (const auto it = m_componentNameMap.find(name); it != m_componentNameMap.end())
             return it->second;
@@ -17,6 +21,7 @@ namespace entis {
         meta.alignment = alignment;
         meta.dtor = dtor;
         meta.moveCtor = moveCtor;
+        meta.copyCtor = copyCtor;
 
         m_components.push_back(meta);
 
@@ -102,6 +107,31 @@ namespace entis {
         }
 
         return true;
+    }
+
+    void EcsContext::merge(const EcsContext &other)
+    {
+        for (const auto& component : other.m_components)
+            m_components.push_back(component);
+
+        for (const auto& [name, id] : other.m_componentNameMap)
+            m_componentNameMap[name] = id;
+
+        std::unordered_map<EntityId, EntityId> idMap;
+
+        for (const auto& archetype : other.m_archetypes | std::views::values)
+        {
+            for (size_t row = 0; row < archetype.m_rowToEntity.size(); row++)
+            {
+                EntityId id = archetype.m_rowToEntity[row];
+                idMap[id] = createEntity();
+            }
+        }
+
+        for (const auto& [signature, archetype] : other.m_archetypes)
+        {
+            getOrCreateArchetype(signature).merge(archetype, idMap);
+        }
     }
 
     Archetype* EcsContext::getArchetype(const ArchetypeSignature& signature)

@@ -20,6 +20,7 @@ public:
     }
 
     void* get(size_t index);
+    const void* get(size_t index) const;
     void* back();
     void* allocateBack();
     void popBack();

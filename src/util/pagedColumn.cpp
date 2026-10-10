@@ -14,6 +14,16 @@ namespace entis
         return &m_pages[pageIndex][offset * m_elementSize];
     }
 
+    const void * PagedColumn::get(const size_t index) const
+    {
+        assert(index < m_size);
+
+        const size_t pageIndex = index / m_elementsPerPage;
+        const size_t offset = index % m_elementsPerPage;
+
+        return &m_pages[pageIndex][offset * m_elementSize];
+    }
+
     void* PagedColumn::back()
     {
         return get(m_size-1);

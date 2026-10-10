@@ -41,9 +41,9 @@ static uint64_t elapsedNs(const auto start, const auto end)
 
 int main()
 {
-    constexpr size_t entityCount = 1'000'000;
-    constexpr size_t warmupIterations = 100;
-    constexpr size_t benchmarkIterations = 1'000;
+    constexpr size_t entityCount = 100'000;
+    constexpr size_t warmupIterations = 10;
+    constexpr size_t benchmarkIterations = 100;
 
     entis::Registry registry;
 
@@ -80,8 +80,8 @@ int main()
             entity,
             1,
             1,
-            0.f,
-            0.f,
+            0.1f,
+            0.1f,
             1.f
         );
 
@@ -129,6 +129,9 @@ int main()
     // -------------------------------------------------------------------------
     // Create view
     // -------------------------------------------------------------------------
+
+    entis::Registry newRegistry{};
+    newRegistry.merge(registry);
 
     uint64_t viewCreationNs = 0;
 
@@ -184,6 +187,8 @@ int main()
         iterationNs += elapsedNs(start, end);
         matchingEntities = count;
     }
+
+
 
     // -------------------------------------------------------------------------
     // Results

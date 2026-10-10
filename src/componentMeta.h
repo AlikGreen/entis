@@ -1,10 +1,13 @@
 #pragma once
 #include <cstdint>
 
+#include "entity.h"
+
 namespace entis
 {
 using DestructorFn = void(*)(void*);
-using MoveConstructorFn = void(*)(void* dst, void* src);
+using MoveFn = void(*)(void* dst, void* src);
+using CopyFn = void(*)(void* dst, const void* src, const EntityMap& );
 
 using ComponentId = uint32_t;
 struct ComponentMeta
@@ -14,7 +17,8 @@ struct ComponentMeta
     uint32_t alignment;
 
     DestructorFn dtor;
-    MoveConstructorFn moveCtor;
+    MoveFn moveCtor;
+    CopyFn copyCtor;
 
     bool operator==(const ComponentMeta& other) const
     {

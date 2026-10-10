@@ -31,7 +31,7 @@ public:
             if (m_archetypeIndex < m_view.m_archetypes.size())
             {
                 loadArchetype();
-                loadPage();
+                if (m_archetype) loadPage();
             }
         }
 
@@ -44,7 +44,7 @@ public:
         {
             m_pageRow++;
 
-            if (m_pageRow > m_pageSize) [[unlikely]]
+            if (m_pageRow >= m_pageSize) [[unlikely]]
             {
                 ++m_pageIndex;
 
@@ -66,6 +66,14 @@ public:
                 }
 
                 loadArchetype();
+
+                if (!m_archetype)
+                {
+                    m_pageRow = 0;
+                    m_pageIndex = 0;
+                    return *this;
+                }
+
                 loadPage();
             }
 

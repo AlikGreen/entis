@@ -136,9 +136,35 @@ namespace entis
         m_entityToRow.erase(entityId);
     }
 
+    void Archetype::merge(const Archetype &other, const std::unordered_map<EntityId, EntityId>& idMap)
+    {
+        for (size_t row = 0; row < other.m_rowToEntity.size(); row++)
+        {
+            EntityId originalEntity = other.entityAt(row);
+            const EntityId newEntity = idMap.at(originalEntity);
+            addEntity(newEntity);
+            const size_t dstRow = *m_entityToRow.get(newEntity);
+
+            for (size_t i = 0; i < other.m_columns.size(); ++i)
+            {
+                const ComponentMeta& meta = m_componentMetas[i];
+
+                const PagedColumn& srcColumn = other.m_columns[i];
+                PagedColumn* dstColumn = findColumn(meta.id);
+                if(!dstColumn) continue; // maybe throw?
+
+                const void* src = srcColumn.get(row);
+                void* dst = dstColumn->get(dstRow);
+
+                if (meta.copyCtor) // maybe warn or error if null?
+                    meta.copyCtor(dst, src, idMap);
+            }
+        }
+    }
+
     EntityId Archetype::entityAt(const size_t row) const
     {
-        return m_rowToEntity[row]; // FIXME
+        return m_rowToEntity[row]; // FIXME. what about?
     }
 
     size_t Archetype::rowOf(const EntityId id) const

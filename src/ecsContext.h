@@ -18,7 +18,8 @@ public:
         uint32_t size,
         uint32_t alignment,
         DestructorFn dtor = nullptr,
-        MoveConstructorFn moveCtor = nullptr);
+        MoveFn moveCtor = nullptr,
+        CopyFn copyCtor = nullptr);
 
     ComponentId componentId(const std::string& name);
 
@@ -30,6 +31,8 @@ public:
     void* add(EntityId entityId, ComponentId componentId, void* data);
     [[nodiscard]] bool has(EntityId entityId, ComponentId componentId) const;
     bool remove(EntityId entityId, ComponentId componentId);
+
+    void merge(const EcsContext& other);
 private:
     friend class Registry;
 

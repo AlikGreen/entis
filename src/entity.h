@@ -1,11 +1,14 @@
 #pragma once
 #include <cstdint>
 #include <type_traits>
+#include <unordered_map>
 
 
 namespace entis
 {
 using EntityId = uint64_t;
+using EntityMap = std::unordered_map<EntityId, EntityId>;
+
 class Registry;
 class Entity
 {

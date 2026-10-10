@@ -8,8 +8,15 @@
 #include "entity.h"
 #include "ecsContext.h"
 
+
 namespace entis
 {
+template<typename T>
+concept HasMapCopy = requires(const T& src, const EntityMap& map)
+{
+    { T::copyWithMap(src, map) } -> std::same_as<T>;
+};
+
 class Entity;
 template<typename... Components>
 class View;
@@ -57,6 +64,7 @@ public:
     }
 
     EcsContext& context() { return m_context; }
+    const EcsContext& context() const { return m_context; }
 
     template<typename... Components, typename Fn>
     requires std::invocable<Fn&, Entity, Components&...>
@@ -74,6 +82,8 @@ public:
 
     template<typename... Components>
     View<Components...> view();
+
+    void merge(const Registry& registry);
 private:
     template<typename... Components>
     friend class View;
@@ -131,6 +141,29 @@ private:
     }
 
     template<typename T>
+    constexpr CopyFn makeCopyFn() const
+    {
+        if constexpr (HasMapCopy<T>)
+        {
+            return [](void* dst, const void* src, const EntityMap& map)
+            {
+                ::new (dst) T(T::copyWithMap(*static_cast<const T*>(src), map));
+            };
+        }
+        else if constexpr (std::is_copy_constructible_v<T>)
+        {
+            return [](void* dst, const void* src, const EntityMap&)
+            {
+                ::new (dst) T(*static_cast<const T*>(src));
+            };
+        }
+        else
+        {
+            return nullptr;
+        }
+    }
+
+    template<typename T>
     ComponentId componentId()
     {
         static ComponentId id = [this]() -> ComponentId
@@ -142,7 +175,8 @@ private:
                 sizeof(T),
                 alignof(T),
                 [](void* ptr) { std::destroy_at(static_cast<T*>(ptr)); },
-            [](void* dst, void* src) { ::new (dst) T(std::move(*static_cast<T*>(src))); }
+                [](void* dst, void* src) { ::new (dst) T(std::move(*static_cast<T*>(src))); },
+                makeCopyFn<T>()
             );
         }();
 
